@@ -1,7 +1,7 @@
 import { Effect as E } from 'effect'
 import type { Schema } from 'effect'
 import { MediaEmpty } from '../../domain/media/media.errors'
-import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
+import { UnifiedMediaRequest } from '../../domain/media/media.schema'
 import { parseMediaUsecase } from '../../usecases/media/parse-media.usecase'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>

@@ -1,27 +1,54 @@
-import { Context, Effect as E, type Schema } from 'effect'
-import type { MediaParsingError } from '../../domain/media/media.errors'
+import { Config, ConfigError, Context, Effect as E, Redacted, Schema } from 'effect'
+import { experimental_transcribe as transcribe, type DataContent } from "ai";
+import { createDeepgram } from "@ai-sdk/deepgram";
+import { MediaClientError, MediaParsingError } from '../../domain/media/media.errors'
 import {
   MediaResponse,
-  type UnifiedMediaRequest,
 } from '../../domain/media/media.schema'
-
-type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 
 export class MediaStore extends Context.Tag('MediaStore')<
   MediaStore,
   {
     readonly parseMedia: (
-      request: UnifiedMediaRequestType,
-    ) => E.Effect<Schema.Schema.Type<typeof MediaResponse>, MediaParsingError>
+      media: DataContent | URL,
+      language: string,
+    ) => E.Effect<Schema.Schema.Type<typeof MediaResponse>, MediaParsingError | MediaClientError | ConfigError.ConfigError>
   }
 >() {
   static Deepgram = MediaStore.of({
-    parseMedia: E.fn('parse-media')(function* (
-      request: UnifiedMediaRequestType,
-    ) {
-      yield* E.annotateCurrentSpan('request', request)
+    parseMedia: E.fn('parse-media')(function* (media, language) {
+      yield* E.annotateCurrentSpan('request', media)
+
+      const apiKey = yield* Config.redacted('DEEPGRAM_API_KEY')
+      const client = yield* E.try({
+        try: () => createDeepgram({
+          apiKey: Redacted.value(apiKey),
+        }),
+        catch: (error) => new MediaClientError({ source: "deepgram", error }),
+      })
+
+      const result = yield* E.tryPromise({
+        try: () => {
+          return transcribe({
+            model: client.transcription("nova-2"),
+            audio: media,
+            providerOptions: {
+              deepgram: {
+                language,
+              }
+            }
+          })
+        },
+        catch: (error) => new MediaParsingError({ source: "ai-sdk", error}),
+      })
+      yield* E.annotateCurrentSpan('result', result)
+
       return MediaResponse.make({
-        json: [],
+        json: result.segments.map(segment => ({
+          start: segment.startSecond,
+          end: segment.endSecond,
+          text: segment.text,
+        })),
       })
     }),
   })

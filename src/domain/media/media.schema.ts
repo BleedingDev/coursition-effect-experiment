@@ -3,12 +3,12 @@ import { Schema } from 'effect'
 
 const ParseMediaFileRequest = HttpApiSchema.Multipart(
   Schema.Struct({
-    file: Multipart.FileSchema,
+    file: Multipart.SingleFileSchema,
   }),
 )
 
 const ParseMediaUrlRequest = Schema.Struct({
-  url: Schema.String,
+  url: Schema.URL,
 })
 
 const ParseMediaOptions = Schema.Struct({
@@ -25,6 +25,7 @@ const SubtitleJson = Schema.Array(
     start: Schema.Number,
     end: Schema.Number,
     text: Schema.String,
+    speaker: Schema.optional(Schema.NonNegativeInt),
   }),
 )
 

@@ -14,15 +14,27 @@
     "typecheck": "tspc --noEmit",
     "build": "tspc"
   },
-  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
+  "keywords": [
+    "effect-ts",
+    "media-parsing",
+    "subtitles",
+    "typescript"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/assemblyai": "1.0.0-alpha.10",
+    "@ai-sdk/deepgram": "1.0.0-alpha.10",
+    "@ai-sdk/elevenlabs": "1.0.0-alpha.10",
+    "@ai-sdk/gladia": "1.0.0-alpha.10",
+    "@ai-sdk/groq": "2.0.0-alpha.10",
+    "@ai-sdk/openai": "2.0.0-alpha.10",
     "@effect/experimental": "catalog:effect",
     "@effect/language-service": "catalog:effect",
     "@effect/opentelemetry": "catalog:effect",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "catalog:effect",
+    "ai": "5.0.0-alpha.10",
     "effect": "catalog:effect"
   },
   "packageManager": "pnpm@10.7.0",
@@ -30,8 +42,8 @@
     "@biomejs/biome": "catalog:lint",
     "@effect/vitest": "catalog:test",
     "@vitest/ui": "catalog:test",
-    "typescript": "catalog:types",
     "ts-patch": "catalog:types",
+    "typescript": "catalog:types",
     "ultracite": "catalog:lint",
     "vitest": "catalog:test"
   }
