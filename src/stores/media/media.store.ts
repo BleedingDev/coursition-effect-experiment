@@ -11,12 +11,12 @@ export class MediaStore extends Context.Tag('MediaStore')<
   {
     readonly parseMedia: (
       media: DataContent | URL,
-      language: string,
+      language?: string,
     ) => E.Effect<Schema.Schema.Type<typeof MediaResponse>, MediaParsingError | MediaClientError | ConfigError.ConfigError>
   }
 >() {
   static Deepgram = MediaStore.of({
-    parseMedia: E.fn('parse-media')(function* (media, language) {
+    parseMedia: E.fn('parse-media')(function* (media, language = "en-GB") {
       yield* E.annotateCurrentSpan('request', media)
 
       const apiKey = yield* Config.redacted('DEEPGRAM_API_KEY')
