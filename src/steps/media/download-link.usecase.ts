@@ -6,7 +6,7 @@ type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 export const downloadLinkUsecase = (request: UnifiedMediaRequestType) =>
   E.gen(function* () {
     // TODO: Implement the logic to download a media file from a link
-    console.log('downloadLinkUsecase');
+    console.log('downloadLinkUsecase')
     return undefined
   }).pipe(
     E.tapError(E.logError),

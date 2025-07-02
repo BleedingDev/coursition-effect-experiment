@@ -14,12 +14,7 @@
     "typecheck": "tspc --noEmit",
     "build": "tspc"
   },
-  "keywords": [
-    "effect-ts",
-    "media-parsing",
-    "subtitles",
-    "typescript"
-  ],
+  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
   "author": "",
   "license": "MIT",
   "dependencies": {

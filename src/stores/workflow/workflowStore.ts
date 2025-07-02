@@ -31,7 +31,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
         .serviceClient(request.processDefinition)
         .process(request.props)
         .then(() => {
-          console.log('Process started successfully');
+          console.log('Process started successfully')
         })
 
       return StartProcessResponse.make({ response })

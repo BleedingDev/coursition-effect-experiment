@@ -1,4 +1,3 @@
-import * as restate from '@restatedev/restate-sdk'
 import { DevTools } from '@effect/experimental'
 import * as Otlp from '@effect/opentelemetry/Otlp'
 import {
@@ -9,6 +8,7 @@ import {
 } from '@effect/platform'
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
+import * as restate from '@restatedev/restate-sdk'
 import { Effect as E, Layer } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
@@ -16,11 +16,11 @@ import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
 import { getJobResultHandler } from './handlers/jobs/get-job-result.handler'
 import { getJobsHandler } from './handlers/jobs/get-jobs.handler'
 import { parseMediaHandler } from './handlers/media/parse-media.handler'
+import { transcribeWorkflowHandler } from './handlers/media/transcribe-workflow.handler.ts'
 import { JobsStore } from './stores/jobs/jobs.store'
 import { MediaStore } from './stores/media/media.store'
 import { WorkflowStore } from './stores/workflow/workflowStore.ts'
-import {transcribeWorkflowHandler} from "./handlers/media/transcribe-workflow.handler.ts";
-import {transcribeWorkflowDefinition} from "./usecases/media/transcribe-workflow.usecase.ts";
+import { transcribeWorkflowDefinition } from './usecases/media/transcribe-workflow.usecase.ts'
 
 const mediaGroupImplementation = HttpApiBuilder.group(
   api,
@@ -28,18 +28,15 @@ const mediaGroupImplementation = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle('parseMedia', ({ payload }) => parseMediaHandler(payload))
-      .handle('transcribeWorkflow', ({ payload }) => transcribeWorkflowHandler(payload))
+      .handle('transcribeWorkflow', ({ payload }) =>
+        transcribeWorkflowHandler(payload),
+      )
       .handle('getJobs', () => getJobsHandler())
       .handle('getJob', ({ path: { id } }) => getJobByIdHandler(id))
       .handle('getJobResult', ({ path: { id } }) => getJobResultHandler(id)),
 )
 // TODO: Make port consume env variables
-restate
-  .endpoint()
-  .bind(
-    transcribeWorkflowDefinition,
-  )
-  .listen(9997)
+restate.endpoint().bind(transcribeWorkflowDefinition).listen(9997)
 
 const ApiImplementation = HttpApiBuilder.api(api).pipe(
   Layer.provide(mediaGroupImplementation),

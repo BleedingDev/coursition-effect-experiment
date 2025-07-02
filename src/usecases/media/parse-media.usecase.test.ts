@@ -1,9 +1,9 @@
+import { FileSystem } from '@effect/platform'
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Layer } from 'effect'
 import { MediaStore } from '../../stores/media/media.store'
 import { makeTestLayer } from '../../test-utils'
 import { parseMediaUsecase } from './parse-media.usecase'
-import { FileSystem } from '@effect/platform'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
   parseMedia: () =>
@@ -14,9 +14,7 @@ const MediaStoreTestLayer = makeTestLayer(MediaStore)({
         { start: 10000, end: 15000, text: 'Sub parsing complete' },
       ],
     }),
-}).pipe(
-  Layer.merge(FileSystem.layerNoop({}))
-)
+}).pipe(Layer.merge(FileSystem.layerNoop({})))
 
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>

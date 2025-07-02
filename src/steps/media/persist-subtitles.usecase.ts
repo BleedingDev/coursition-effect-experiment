@@ -3,7 +3,7 @@ import { Effect as E } from 'effect'
 export const persistSubtitlesUsecase = () =>
   E.gen(function* () {
     // TODO: Implement the logic to persist gained subtitles
-    console.log('persistSubtitlesUsecase');
+    console.log('persistSubtitlesUsecase')
     return undefined
   }).pipe(
     E.tapError(E.logError),

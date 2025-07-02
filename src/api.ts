@@ -1,16 +1,23 @@
-import {HttpApi, HttpApiEndpoint, HttpApiGroup} from '@effect/platform'
-import {idParam} from './domain/common/schema'
-import {JobNotFound, JobResultNotFound} from './domain/jobs/jobs.errors'
-import {JobResponse, JobResultResponse, JobsResponse,} from './domain/jobs/jobs.schema'
-import {MediaEmpty} from './domain/media/media.errors'
-import {MediaResponse, UnifiedMediaRequest} from './domain/media/media.schema'
-import {StartProcessResponse} from "./domain/workflow/workflow.schema.ts";
+import { HttpApi, HttpApiEndpoint, HttpApiGroup } from '@effect/platform'
+import { idParam } from './domain/common/schema'
+import { JobNotFound, JobResultNotFound } from './domain/jobs/jobs.errors'
+import {
+  JobResponse,
+  JobResultResponse,
+  JobsResponse,
+} from './domain/jobs/jobs.schema'
+import { MediaEmpty } from './domain/media/media.errors'
+import { MediaResponse, UnifiedMediaRequest } from './domain/media/media.schema'
+import { StartProcessResponse } from './domain/workflow/workflow.schema.ts'
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)
   .addSuccess(MediaResponse)
   .addError(MediaEmpty, { status: 422 })
-const transcribeWorkflow = HttpApiEndpoint.post('transcribeWorkflow', '/transcribeWorkflow')
+const transcribeWorkflow = HttpApiEndpoint.post(
+  'transcribeWorkflow',
+  '/transcribeWorkflow',
+)
   .setPayload(UnifiedMediaRequest)
   .addSuccess(StartProcessResponse)
   .addError(MediaEmpty, { status: 422 })
