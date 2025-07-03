@@ -14,12 +14,7 @@
     "typecheck": "tspc --noEmit",
     "build": "tspc"
   },
-  "keywords": [
-    "effect-ts",
-    "media-parsing",
-    "subtitles",
-    "typescript"
-  ],
+  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -34,6 +29,8 @@
     "@effect/opentelemetry": "catalog:effect",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "catalog:effect",
+    "@restatedev/restate-sdk": "^1.6.0",
+    "@restatedev/restate-sdk-clients": "^1.6.0",
     "ai": "5.0.0-alpha.10",
     "effect": "catalog:effect"
   },
