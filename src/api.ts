@@ -7,17 +7,10 @@ import {
   JobsResponse,
 } from './domain/jobs/jobs.schema'
 import { MediaEmpty } from './domain/media/media.errors'
-import { MediaResponse, UnifiedMediaRequest } from './domain/media/media.schema'
+import { UnifiedMediaRequest } from './domain/media/media.schema'
 import { StartProcessResponse } from './domain/workflow/workflow.schema.ts'
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
-  .setPayload(UnifiedMediaRequest)
-  .addSuccess(MediaResponse)
-  .addError(MediaEmpty, { status: 422 })
-const transcribeWorkflow = HttpApiEndpoint.post(
-  'transcribeWorkflow',
-  '/transcribeWorkflow',
-)
   .setPayload(UnifiedMediaRequest)
   .addSuccess(StartProcessResponse)
   .addError(MediaEmpty, { status: 422 })
@@ -32,7 +25,6 @@ const jobResult = HttpApiEndpoint.get('getJobResult')`/job/${idParam}/result`
 
 const parseGroup = HttpApiGroup.make('media')
   .add(parseMedia)
-  .add(transcribeWorkflow)
   .add(jobs)
   .add(job)
   .add(jobResult)

@@ -3,7 +3,7 @@ import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Layer } from 'effect'
 import { MediaStore } from '../../stores/media/media.store'
 import { makeTestLayer } from '../../test-utils'
-import { parseMediaUsecase } from './parse-media.usecase'
+import { parseMediaUsecase } from './transcribe-media.step'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
   parseMedia: () =>

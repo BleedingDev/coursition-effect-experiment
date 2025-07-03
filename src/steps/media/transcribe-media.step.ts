@@ -5,7 +5,7 @@ import { MediaStore } from '../../stores/media/media.store'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 
-export const parseMediaUsecase = (request: UnifiedMediaRequestType) =>
+export const transcribeMediaStep = (request: UnifiedMediaRequestType) =>
   E.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const media =

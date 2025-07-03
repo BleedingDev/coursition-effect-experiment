@@ -1,6 +1,6 @@
 import { Effect as E } from 'effect'
 
-export const persistSubtitlesUsecase = () =>
+export const persistSubtitlesStep = () =>
   E.gen(function* () {
     // TODO: Implement the logic to persist gained subtitles
     console.log('persistSubtitlesUsecase')

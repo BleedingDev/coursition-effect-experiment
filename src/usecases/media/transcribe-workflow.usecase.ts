@@ -1,9 +1,9 @@
 import * as restate from '@restatedev/restate-sdk'
 import { Effect as E, type Schema } from 'effect'
+import { downloadLinkStep } from 'src/steps/media/download-link.step.ts'
+import { persistSubtitlesStep } from 'src/steps/media/persist-subtitles.step.ts'
+import { transcribeMediaStep } from 'src/steps/media/transcribe-media.step.ts'
 import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
-import { downloadLinkUsecase } from '../../steps/media/download-link.usecase.ts'
-import { persistSubtitlesUsecase } from '../../steps/media/persist-subtitles.usecase.ts'
-import { transcribeUsecase } from '../../steps/media/transcribe.usecase.ts'
 import {
   WorkflowStore,
   executeStep,
@@ -18,9 +18,7 @@ export const startTranscribeProcessUsecase = (
     const workflowStore = yield* WorkflowStore
     const result = yield* workflowStore.startProcess({
       processDefinition: transcribeWorkflowDefinition,
-      props: {
-        ...request,
-      },
+      props: request,
     })
 
     return result
@@ -42,21 +40,22 @@ export const transcribeWorkflowDefinition = restate.service({
       ctx: restate.Context,
       props: { url: string; language: string },
     ) => {
+      const propsWithUrl = {
+        url: new URL(props.url),
+        language: props.language,
+      }
       // Should return a downloaded file
       await executeStep(ctx, function* () {
-        return yield* downloadLinkUsecase({
-          url: props.url,
-          language: props.language,
-        })
+        return yield* downloadLinkStep(propsWithUrl)
       })
 
       // Should return subtitles
       await executeStep(ctx, function* () {
-        return yield* transcribeUsecase()
+        return yield* transcribeMediaStep(propsWithUrl)
       })
 
       await executeStep(ctx, function* () {
-        return yield* persistSubtitlesUsecase()
+        return yield* persistSubtitlesStep()
       })
     },
   },

@@ -9,7 +9,7 @@ type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 export const parseMediaHandler = (request: UnifiedMediaRequestType) =>
   E.gen(function* () {
     const result = yield* parseMediaUsecase(request)
-    return result
+    return { response: { result } }
   }).pipe(
     E.catchAll(() => new MediaEmpty()),
     E.tapError(E.logError),

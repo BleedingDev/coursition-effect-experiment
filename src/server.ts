@@ -15,8 +15,7 @@ import { envVars } from './config'
 import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
 import { getJobResultHandler } from './handlers/jobs/get-job-result.handler'
 import { getJobsHandler } from './handlers/jobs/get-jobs.handler'
-import { parseMediaHandler } from './handlers/media/parse-media.handler'
-import { transcribeWorkflowHandler } from './handlers/media/transcribe-workflow.handler.ts'
+import { parseMediaHandler } from './handlers/media/parse-media.handler.ts'
 import { JobsStore } from './stores/jobs/jobs.store'
 import { MediaStore } from './stores/media/media.store'
 import { WorkflowStore } from './stores/workflow/workflowStore.ts'
@@ -28,9 +27,6 @@ const mediaGroupImplementation = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle('parseMedia', ({ payload }) => parseMediaHandler(payload))
-      .handle('transcribeWorkflow', ({ payload }) =>
-        transcribeWorkflowHandler(payload),
-      )
       .handle('getJobs', () => getJobsHandler())
       .handle('getJob', ({ path: { id } }) => getJobByIdHandler(id))
       .handle('getJobResult', ({ path: { id } }) => getJobResultHandler(id)),

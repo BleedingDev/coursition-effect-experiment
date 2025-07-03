@@ -3,7 +3,7 @@ import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 
-export const downloadLinkUsecase = (request: UnifiedMediaRequestType) =>
+export const downloadLinkStep = (request: UnifiedMediaRequestType) =>
   E.gen(function* () {
     // TODO: Implement the logic to download a media file from a link
     console.log('downloadLinkUsecase')
