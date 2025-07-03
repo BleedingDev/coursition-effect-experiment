@@ -7,7 +7,7 @@ import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
 import {
   WorkflowStore,
   executeStep,
-} from '../../stores/workflow/workflowStore.ts'
+} from '../../stores/workflow/workflow-store.ts'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 
