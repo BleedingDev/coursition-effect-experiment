@@ -44,10 +44,6 @@ export const executeStep = async (
   execMethod: () => any,
 ) => {
   return ctx.run(() => {
-    E.runSync(
-      E.sync(function* () {
-        return yield* execMethod()
-      }),
-    )
+    return E.runSync(execMethod())
   })
 }

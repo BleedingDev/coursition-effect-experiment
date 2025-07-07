@@ -44,18 +44,19 @@ export const transcribeWorkflowDefinition = restate.service({
         url: new URL(props.url),
         language: props.language,
       }
+      
       // Should return a downloaded file
-      await executeStep(ctx, function* () {
-        return yield* downloadLinkStep(propsWithUrl)
+      await executeStep(ctx, () => {
+        return downloadLinkStep(propsWithUrl)
       })
 
       // Should return subtitles
-      await executeStep(ctx, function* () {
-        return yield* transcribeMediaStep(propsWithUrl)
+      await executeStep(ctx, () => {
+        return transcribeMediaStep(propsWithUrl)
       })
 
-      await executeStep(ctx, function* () {
-        return yield* persistSubtitlesStep()
+      await executeStep(ctx, () => {
+        return persistSubtitlesStep()
       })
     },
   },
