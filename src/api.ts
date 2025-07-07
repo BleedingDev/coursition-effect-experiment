@@ -7,11 +7,12 @@ import {
   JobsResponse,
 } from './domain/jobs/jobs.schema'
 import { MediaEmpty } from './domain/media/media.errors'
-import { MediaResponse, UnifiedMediaRequest } from './domain/media/media.schema'
+import { UnifiedMediaRequest } from './domain/media/media.schema'
+import { StartProcessResponse } from './domain/workflow/workflow.schema.ts'
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)
-  .addSuccess(MediaResponse)
+  .addSuccess(StartProcessResponse)
   .addError(MediaEmpty, { status: 422 })
 const jobs = HttpApiEndpoint.get('getJobs', '/jobs').addSuccess(JobsResponse)
 const job = HttpApiEndpoint.get('getJob')`/job/${idParam}`
