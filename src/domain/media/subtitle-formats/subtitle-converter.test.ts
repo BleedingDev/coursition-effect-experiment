@@ -146,6 +146,301 @@ describe('SubtitleConverter', () => {
         expect(result[0]?.text).toBe('Hello world')
       })
     )
+
+    it.effect('should process subtitles and print valid SRT file', () =>
+      E.gen(function* () {
+        // Create a more complex subtitle dataset
+        const complexSubtitles: SubtitleItem[] = [
+          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
+          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
+          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
+          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+        ]
+
+        // Process the subtitles with various options (without merging to see individual entries)
+        const processedSubtitles = yield* processSubtitles(complexSubtitles, {
+          timingOffset: 500,
+          includeSpeaker: true,
+          cleanText: true,
+          mergeAdjacent: false, // Disable merging to see individual subtitle entries
+        })
+
+        // Convert to SRT format
+        const srtContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'srt')
+
+        // Print the SRT content
+        console.log('\n=== Generated SRT File ===')
+        console.log(srtContent)
+        console.log('=== End SRT File ===\n')
+
+        // Verify the SRT content is valid
+        expect(srtContent).toContain('1\n')
+        expect(srtContent).toContain('00:00:00,500 --> 00:00:03,500\n')
+        expect(srtContent).toContain('[Speaker 1]: Welcome to our presentation\n')
+        expect(srtContent).toContain('2\n')
+        expect(srtContent).toContain('00:00:03,500 --> 00:00:06,500\n')
+        expect(srtContent).toContain('[Speaker 1]: Today we will discuss\n')
+        expect(srtContent).toContain('3\n')
+        expect(srtContent).toContain('00:00:06,500 --> 00:00:09,500\n')
+        expect(srtContent).toContain('[Speaker 2]: the future of technology\n')
+        expect(srtContent).toContain('4\n')
+        expect(srtContent).toContain('00:00:09,500 --> 00:00:12,500\n')
+        expect(srtContent).toContain('[Speaker 2]: and its impact on society\n')
+        expect(srtContent).toContain('5\n')
+        expect(srtContent).toContain('00:00:12,500 --> 00:00:15,500\n')
+        expect(srtContent).toContain('[Speaker 1]: Thank you for your attention\n')
+
+        // Verify the structure is correct (number, timing, text, empty line)
+        const lines = srtContent.split('\n')
+        expect(lines).toContain('1')
+        expect(lines).toContain('2')
+        expect(lines).toContain('3')
+        expect(lines).toContain('4')
+        expect(lines).toContain('5')
+        expect(lines).toContain('') // Empty lines between subtitles
+
+        console.log(`Processed ${processedSubtitles.length} subtitles into SRT format`)
+        console.log(`SRT file contains ${lines.length} lines`)
+        console.log(`Original subtitles: ${complexSubtitles.length}, Processed subtitles: ${processedSubtitles.length}`)
+      })
+    )
+
+    it.effect('should process subtitles and print valid JSON format', () =>
+      E.gen(function* () {
+        // Create a complex subtitle dataset
+        const complexSubtitles: SubtitleItem[] = [
+          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
+          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
+          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
+          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+        ]
+
+        // Process the subtitles with various options
+        const processedSubtitles = yield* processSubtitles(complexSubtitles, {
+          timingOffset: 500,
+          includeSpeaker: true,
+          cleanText: true,
+          mergeAdjacent: false,
+        })
+
+        // Convert to JSON format
+        const jsonContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'json')
+
+        // Print the JSON content
+        console.log('\n=== Generated JSON Format ===')
+        console.log(jsonContent)
+        console.log('=== End JSON Format ===\n')
+
+        // Parse and verify the JSON content
+        const parsedJson = JSON.parse(jsonContent)
+        expect(Array.isArray(parsedJson)).toBe(true)
+        expect(parsedJson).toHaveLength(5)
+
+        // Verify the structure of each subtitle
+        expect(parsedJson[0]).toEqual({
+          start: 500,
+          end: 3500,
+          text: '[Speaker 1]: Welcome to our presentation',
+          speaker: 1
+        })
+
+        expect(parsedJson[1]).toEqual({
+          start: 3500,
+          end: 6500,
+          text: '[Speaker 1]: Today we will discuss',
+          speaker: 1
+        })
+
+        expect(parsedJson[2]).toEqual({
+          start: 6500,
+          end: 9500,
+          text: '[Speaker 2]: the future of technology',
+          speaker: 2
+        })
+
+        expect(parsedJson[3]).toEqual({
+          start: 9500,
+          end: 12500,
+          text: '[Speaker 2]: and its impact on society',
+          speaker: 2
+        })
+
+        expect(parsedJson[4]).toEqual({
+          start: 12500,
+          end: 15500,
+          text: '[Speaker 1]: Thank you for your attention',
+          speaker: 1
+        })
+
+        console.log(`Processed ${processedSubtitles.length} subtitles into JSON format`)
+        console.log(`JSON contains ${parsedJson.length} subtitle entries`)
+      })
+    )
+
+    it.effect('should process subtitles and print valid VTT format', () =>
+      E.gen(function* () {
+        // Create a complex subtitle dataset
+        const complexSubtitles: SubtitleItem[] = [
+          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
+          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
+          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
+          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+        ]
+
+        // Process the subtitles with various options
+        const processedSubtitles = yield* processSubtitles(complexSubtitles, {
+          timingOffset: 500,
+          includeSpeaker: true,
+          cleanText: true,
+          mergeAdjacent: false,
+        })
+
+        // Convert to VTT format
+        const vttContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'vtt')
+
+        // Print the VTT content
+        console.log('\n=== Generated VTT Format ===')
+        console.log(vttContent)
+        console.log('=== End VTT Format ===\n')
+
+        // Verify the VTT content is valid
+        expect(vttContent).toContain('WEBVTT\n')
+        expect(vttContent).toContain('00:00:00.500 --> 00:00:03.500\n')
+        expect(vttContent).toContain('[Speaker 1]: Welcome to our presentation\n')
+        expect(vttContent).toContain('00:00:03.500 --> 00:00:06.500\n')
+        expect(vttContent).toContain('[Speaker 1]: Today we will discuss\n')
+        expect(vttContent).toContain('00:00:06.500 --> 00:00:09.500\n')
+        expect(vttContent).toContain('[Speaker 2]: the future of technology\n')
+        expect(vttContent).toContain('00:00:09.500 --> 00:00:12.500\n')
+        expect(vttContent).toContain('[Speaker 2]: and its impact on society\n')
+        expect(vttContent).toContain('00:00:12.500 --> 00:00:15.500\n')
+        expect(vttContent).toContain('[Speaker 1]: Thank you for your attention\n')
+
+        // Verify VTT-specific format (uses dots instead of commas for milliseconds)
+        expect(vttContent).toMatch(/WEBVTT/)
+        expect(vttContent).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/)
+
+        // Verify the structure is correct
+        const lines = vttContent.split('\n')
+        expect(lines[0]).toBe('WEBVTT')
+        expect(lines).toContain('') // Empty lines between subtitles
+
+        console.log(`Processed ${processedSubtitles.length} subtitles into VTT format`)
+        console.log(`VTT file contains ${lines.length} lines`)
+      })
+    )
+
+    it.effect('should process subtitles and print valid plain text format', () =>
+      E.gen(function* () {
+        // Create a complex subtitle dataset
+        const complexSubtitles: SubtitleItem[] = [
+          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
+          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
+          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
+          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+        ]
+
+        // Process the subtitles with various options
+        const processedSubtitles = yield* processSubtitles(complexSubtitles, {
+          timingOffset: 500,
+          includeSpeaker: true,
+          cleanText: true,
+          mergeAdjacent: false,
+        })
+
+        // Convert to plain text format
+        const textContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'plain-text')
+
+        // Print the plain text content
+        console.log('\n=== Generated Plain Text Format ===')
+        console.log(textContent)
+        console.log('=== End Plain Text Format ===\n')
+
+        // Verify the plain text content is valid
+        expect(textContent).toContain('[Speaker 1]: Welcome to our presentation')
+        expect(textContent).toContain('[Speaker 1]: Today we will discuss')
+        expect(textContent).toContain('[Speaker 2]: the future of technology')
+        expect(textContent).toContain('[Speaker 2]: and its impact on society')
+        expect(textContent).toContain('[Speaker 1]: Thank you for your attention')
+
+        // Verify the structure (text separated by double newlines)
+        const lines = textContent.split('\n')
+        expect(lines).toContain('[Speaker 1]: Welcome to our presentation')
+        expect(lines).toContain('[Speaker 1]: Today we will discuss')
+        expect(lines).toContain('[Speaker 2]: the future of technology')
+        expect(lines).toContain('[Speaker 2]: and its impact on society')
+        expect(lines).toContain('[Speaker 1]: Thank you for your attention')
+        expect(lines).toContain('') // Empty lines between subtitles
+
+        // Verify no timing information is included in plain text
+        expect(textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/)
+        expect(textContent).not.toMatch(/-->/)
+
+        console.log(`Processed ${processedSubtitles.length} subtitles into plain text format`)
+        console.log(`Plain text contains ${lines.length} lines`)
+      })
+    )
+
+    it.effect('should process subtitles and print all formats for comparison', () =>
+      E.gen(function* () {
+        // Create a simple subtitle dataset for format comparison
+        const simpleSubtitles: SubtitleItem[] = [
+          { start: 0, end: 3000, text: 'Hello world', speaker: 1 },
+          { start: 3000, end: 6000, text: 'This is a test', speaker: 2 },
+        ]
+
+        // Process the subtitles with basic options
+        const processedSubtitles = yield* processSubtitles(simpleSubtitles, {
+          timingOffset: 1000,
+          includeSpeaker: true,
+          cleanText: true,
+          mergeAdjacent: false,
+        })
+
+        // Convert to all formats
+        const jsonContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'json')
+        const srtContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'srt')
+        const vttContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'vtt')
+        const textContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'plain-text')
+
+        // Print all formats for comparison
+        console.log('\n=== Format Comparison ===')
+        console.log('JSON Format:')
+        console.log(jsonContent)
+        console.log('\nSRT Format:')
+        console.log(srtContent)
+        console.log('\nVTT Format:')
+        console.log(vttContent)
+        console.log('\nPlain Text Format:')
+        console.log(textContent)
+        console.log('=== End Format Comparison ===\n')
+
+        // Verify each format has the correct structure
+        const parsedJson = JSON.parse(jsonContent)
+        expect(parsedJson).toHaveLength(2)
+        expect(parsedJson[0].text).toBe('[Speaker 1]: Hello world')
+
+        expect(srtContent).toContain('1\n')
+        expect(srtContent).toContain('00:00:01,000 --> 00:00:04,000\n')
+        expect(srtContent).toContain('[Speaker 1]: Hello world\n')
+
+        expect(vttContent).toContain('WEBVTT\n')
+        expect(vttContent).toContain('00:00:01.000 --> 00:00:04.000\n')
+        expect(vttContent).toContain('[Speaker 1]: Hello world\n')
+
+        expect(textContent).toBe('[Speaker 1]: Hello world\n\n[Speaker 2]: This is a test')
+
+        console.log('All formats generated successfully!')
+        console.log(`JSON: ${parsedJson.length} entries`)
+        console.log(`SRT: ${srtContent.split('\\n').length} lines`)
+        console.log(`VTT: ${vttContent.split('\\n').length} lines`)
+        console.log(`Plain Text: ${textContent.split('\\n').length} lines`)
+      })
+    )
   })
 
   describe('SubtitleConverterLive.convert', () => {
