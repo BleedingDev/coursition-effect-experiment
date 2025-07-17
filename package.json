@@ -14,7 +14,12 @@
     "typecheck": "tspc --noEmit",
     "build": "tspc"
   },
-  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
+  "keywords": [
+    "effect-ts",
+    "media-parsing",
+    "subtitles",
+    "typescript"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -38,6 +43,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:lint",
     "@effect/vitest": "catalog:test",
+    "@types/bun": "^1.2.18",
     "@vitest/ui": "catalog:test",
     "ts-patch": "catalog:types",
     "typescript": "catalog:types",
