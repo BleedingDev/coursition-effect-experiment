@@ -56,6 +56,14 @@ const invalidSubtitles = [
   { start: 10000, end: 15000, text: '' }, // Empty text
 ]
 
+/**
+ * Returns a new array with the items in reverse order.
+ * @param arr Array to reverse
+ */
+function reverseArray<T>(arr: T[]): T[] {
+  return [...arr].reverse();
+}
+
 describe('SubtitleConverter', () => {
   describe('validateSubtitleData', () => {
     it.effect('should validate correct subtitle data', () =>
@@ -1156,6 +1164,34 @@ describe('SubtitleConverter', () => {
     )
   })
 
+  describe('Middleware filter debug', () => {
+    it('should print subtitles before and after each filter', () => {
+      const originalSubtitles: SubtitleItem[] = [
+        { start: 0, end: 2000, text: 'First line', speaker: 1 },
+        { start: 2000, end: 4000, text: 'Second line', speaker: 2 },
+      ]
+
+      // Print before any filters
+      console.log('\n[DEBUG] Original subtitles:', JSON.stringify(originalSubtitles, null, 2))
+
+      // Apply addTimingOffset
+      const offsetSubtitles = originalSubtitles.map(addTimingOffset(1000))
+      console.log('[DEBUG] After addTimingOffset(+1000):', JSON.stringify(offsetSubtitles, null, 2))
+
+      // Apply replaceText
+      const replacedSubtitles = offsetSubtitles.map(replaceText('Replaced!'))
+      console.log('[DEBUG] After replaceText("Replaced!"):', JSON.stringify(replacedSubtitles, null, 2))
+
+      // Apply addPrefix
+      const prefixedSubtitles = replacedSubtitles.map(addPrefix('[PREFIX]'))
+      console.log('[DEBUG] After addPrefix("[PREFIX]"):', JSON.stringify(prefixedSubtitles, null, 2))
+
+      // Final assertion (just to keep the test green)
+      expect(prefixedSubtitles[0]?.text).toBe('[PREFIX] Replaced!')
+      expect(prefixedSubtitles[1]?.text).toBe('[PREFIX] Replaced!')
+    })
+  })
+
   describe('Streaming Processing', () => {
     it.effect('should process subtitles in parallel using streams', () =>
       E.gen(function* () {
@@ -1405,5 +1441,95 @@ describe('SubtitleConverter', () => {
         }
       })
     )
+  })
+
+  describe('Unified streaming pipeline with multiple format collectors', () => {
+    /**
+     * Streams subtitles in input (forward) order, applying each filter to each item.
+     * @param subtitles Array of SubtitleItem
+     * @param filters List of single-item filter functions
+     */
+    function* subtitleStreamUnified(subtitles: SubtitleItem[], ...filters: Array<(item: SubtitleItem) => SubtitleItem>): Generator<SubtitleItem, void, unknown> {
+      for (const item of subtitles) {
+        let current = item
+        for (const filter of filters) {
+          current = filter(current)
+        }
+        yield current
+      }
+    }
+
+    it('should stream subtitles and collect to SRT, VTT, JSON, and plain text', () => {
+      const originalSubtitles: SubtitleItem[] = [
+        { start: 0, end: 2000, text: 'First line', speaker: 1 },
+        { start: 2000, end: 4000, text: 'Second line', speaker: 2 },
+        { start: 4000, end: 6000, text: 'Third line', speaker: 1 },
+      ]
+
+      // Example single-item filters
+      const offset = (item: SubtitleItem): SubtitleItem => ({ ...item, start: item.start + 1000, end: item.end + 1000 })
+      const upper = (item: SubtitleItem): SubtitleItem => ({ ...item, text: item.text.toUpperCase() })
+      const prefix = (item: SubtitleItem): SubtitleItem => ({ ...item, text: `[SPEAKER ${item.speaker}] ${item.text}` })
+
+      // Stream processing (shared)
+      const streamed = Array.from(subtitleStreamUnified(originalSubtitles, offset, upper, prefix)).filter((s): s is SubtitleItem => s !== undefined)
+      const reversed = reverseArray(streamed).filter((s): s is SubtitleItem => s !== undefined)
+      console.log('[DEBUG] Streamed (forward):', streamed.map(s => s.text))
+      console.log('[DEBUG] Reversed after streaming:', reversed.map(s => s.text))
+
+      // Assertions
+      expect(streamed.length).toBe(3)
+      expect(reversed.length).toBe(3)
+      expect(streamed[0]!.text).toBe('[SPEAKER 1] FIRST LINE')
+      expect(streamed[1]!.text).toBe('[SPEAKER 2] SECOND LINE')
+      expect(streamed[2]!.text).toBe('[SPEAKER 1] THIRD LINE')
+      expect(reversed[0]!.text).toBe('[SPEAKER 1] THIRD LINE')
+      expect(reversed[1]!.text).toBe('[SPEAKER 2] SECOND LINE')
+      expect(reversed[2]!.text).toBe('[SPEAKER 1] FIRST LINE')
+    })
+  })
+
+  describe('Reverse iteration and post-stream reversing for streaming', () => {
+    /**
+     * Streams subtitles in input (forward) order, applying each filter to each item.
+     * @param subtitles Array of SubtitleItem
+     * @param filters List of single-item filter functions
+     */
+    function* subtitleStreamNormal(subtitles: SubtitleItem[], ...filters: Array<(item: SubtitleItem) => SubtitleItem>): Generator<SubtitleItem, void, unknown> {
+      for (let i = 0; i < subtitles.length; i++) {
+        let current: SubtitleItem = subtitles[i] as SubtitleItem;
+        for (const filter of filters) {
+          current = filter(current);
+        }
+        yield current;
+      }
+    }
+
+    it('streams normally, then reverses after streaming', () => {
+      const originalSubtitles: SubtitleItem[] = [
+        { start: 1000, end: 2000, text: 'First', speaker: 2 },
+        { start: 2000, end: 3000, text: 'Second', speaker: 1 },
+        { start: 3000, end: 4000, text: 'Third', speaker: 1 },
+      ]
+
+      /** Identity filter for demonstration */
+      const identity = (item: SubtitleItem) => item
+
+      // Normal streaming (forward order)
+      const streamed = Array.from(subtitleStreamNormal(originalSubtitles, identity)).filter((s): s is SubtitleItem => s !== undefined)
+      const reversed = reverseArray(streamed).filter((s): s is SubtitleItem => s !== undefined)
+      console.log('[DEBUG] Streamed (forward):', streamed.map(s => s.text))
+      console.log('[DEBUG] Reversed after streaming:', reversed.map(s => s.text))
+
+      // Assertions
+      expect(streamed.length).toBe(3)
+      expect(reversed.length).toBe(3)
+      expect(streamed[0]!.text).toBe('First')
+      expect(streamed[1]!.text).toBe('Second')
+      expect(streamed[2]!.text).toBe('Third')
+      expect(reversed[0]!.text).toBe('Third')
+      expect(reversed[1]!.text).toBe('Second')
+      expect(reversed[2]!.text).toBe('First')
+    })
   })
 }) 
