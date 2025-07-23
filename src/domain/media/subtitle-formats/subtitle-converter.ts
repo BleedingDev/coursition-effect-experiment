@@ -576,12 +576,19 @@ export const SubtitleConverterLive = {
     ),
     
   /**
-   * Converts subtitle data to multiple formats simultaneously
+   * Converts subtitle data to multiple formats simultaneously.
    * 
-   * @param subtitles - Universal subtitle data (text with timing)
-   * @param formats - Array of target formats for conversion
-   * @param options - Processing options to apply before conversion
-   * @returns Effect that succeeds with conversion results for all formats or fails with conversion error
+   * This method processes the provided subtitle data and converts it into
+   * multiple specified formats. It applies any given processing options
+   * before performing the conversion.
+   * 
+   * @param subtitles - Universal subtitle data (text with timing).
+   * @param formats - Array of target formats for conversion (e.g., json, srt, vtt, plain-text).
+   * @param options - Optional processing options to apply before conversion.
+   * @returns Effect that succeeds with conversion results for all formats or fails with a conversion error.
+   * @throws ConversionError - If the conversion process fails for any format.
+   * @throws InvalidSubtitleDataError - If the provided subtitle data is invalid.
+   * @throws UnsupportedFormatError - If one or more target formats are unsupported.
    */
   convertMultiple: (subtitles: SubtitleJson, formats: SubtitleFormat[], options?: ConversionOptions) =>
     E.gen(function* () {
