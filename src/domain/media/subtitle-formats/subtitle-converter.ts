@@ -532,13 +532,37 @@ export const convertToPlainText = (subtitles: SubtitleItem[]) =>
   )
 
 /**
- * Pure subtitle format converter service
+ * SubtitleConverterLive is a pure subtitle format converter service.
  * 
- * This service handles ONLY subtitle data conversion to different formats.
- * It receives universal subtitle data (text with timing) and converts it to various output formats.
- * No media parsing, transcription, or audio/video processing is performed.
+ * This service handles ONLY subtitle data conversion to different formats. It receives universal
+ * subtitle data (text with timing) and converts it to various output formats such as JSON, SRT, VTT,
+ * and plain text. No media parsing, transcription, or audio/video processing is performed.
  * 
- * Supports both batch processing and streaming/parallel processing for high-performance conversion.
+ * Features:
+ * - Supports batch processing for converting multiple subtitles at once.
+ * - Enables streaming/parallel processing for high-performance conversion.
+ * 
+ * Methods:
+ * - `convert`: Converts subtitle data to a specific format.
+ * - `convertMultiple`: Converts subtitle data to multiple formats simultaneously.
+ * 
+ * Example usage:
+ * ```ts
+ * import { SubtitleConverterLive } from './subtitle-converter';
+ * import { SubtitleJson, SubtitleFormat } from './subtitle-formats.schema';
+ * 
+ * const subtitles: SubtitleJson = [
+ *   { start: 0, end: 2000, text: "Hello, world!" },
+ *   { start: 3000, end: 5000, text: "Welcome to the subtitle converter." }
+ * ];
+ * 
+ * const format: SubtitleFormat = 'vtt';
+ * 
+ * SubtitleConverterLive.convert(subtitles, format).pipe(
+ *   E.map(result => console.log(result)),
+ *   E.tapError(err => console.error(err))
+ * );
+ * ```
  */
 export const SubtitleConverterLive = {
   /**
