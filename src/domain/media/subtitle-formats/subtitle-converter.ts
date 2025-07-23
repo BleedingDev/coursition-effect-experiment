@@ -549,6 +549,17 @@ export const SubtitleConverterLive = {
    * @param options - Processing options to apply before conversion
    * @returns Effect that succeeds with converted content or fails with conversion error
    */
+  /**
+   * Converts subtitle data to a specific format.
+   * 
+   * @param subtitles - Universal subtitle data (text with timing) to be converted.
+   * @param format - Target format for conversion. Supported formats include 'json', 'srt', 'vtt', and 'plain-text'.
+   * @param options - Optional processing options to apply before conversion, such as filtering or formatting rules.
+   * @returns Effect that succeeds with the converted content as a string or fails with a conversion error.
+   * @throws ConversionError - If the conversion process fails due to invalid data or unsupported format.
+   * @throws InvalidSubtitleDataError - If the provided subtitle data is incomplete or malformed.
+   * @throws UnsupportedFormatError - If the specified format is not supported.
+   */
   convert: (subtitles: SubtitleJson, format: SubtitleFormat, options?: ConversionOptions) =>
     E.gen(function* () {
       // For now, skip schema validation to avoid complex Either handling
