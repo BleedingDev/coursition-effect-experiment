@@ -1,8 +1,7 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as os from 'os'
+import { FileSystem } from '@effect/platform'
+import { Layer } from 'effect'
 import {
   SubtitleConverterLive,
   processSubtitles,
@@ -21,6 +20,7 @@ import {
   filterBySpeaker,
   addPrefix
 } from './subtitle-filters'
+import { Option } from 'effect'
 
 /**
  * Sample subtitle data for testing
@@ -32,8 +32,17 @@ const sampleSubtitles: SubtitleItem[] = [
 ]
 
 /**
- * Utility functions to convert single-item filters to array-based filters for testing
- * These maintain backward compatibility with existing tests
+ * Invalid subtitle data for testing error cases.
+ */
+const invalidSubtitles = [
+  { start: -1000, end: 5000, text: 'Negative start time' },
+  { start: 5000, end: 3000, text: 'End before start' },
+  { start: 10000, end: 15000, text: '' },
+]
+
+/**
+ * Utility functions to convert single-item filters to array-based filters for testing.
+ * These maintain backward compatibility with existing tests.
  */
 const replaceTextArray = (replacementText: string) => (subtitles: SubtitleItem[]) =>
   E.sync(() => subtitles.map(replaceText(replacementText)))
@@ -42,19 +51,10 @@ const addTimingOffsetArray = (offset: number) => (subtitles: SubtitleItem[]) =>
   E.sync(() => subtitles.map(addTimingOffset(offset)))
 
 const filterBySpeakerArray = (speakerId: number) => (subtitles: SubtitleItem[]) =>
-  E.sync(() => subtitles.map(filterBySpeaker(speakerId)).filter((item): item is SubtitleItem => item !== null))
+  E.sync(() => subtitles.map(filterBySpeaker(speakerId)).filter(Option.isSome).map(opt => opt.value))
 
 const addPrefixArray = (prefix: string) => (subtitles: SubtitleItem[]) =>
   E.sync(() => subtitles.map(addPrefix(prefix)))
-
-/**
- * Invalid subtitle data for testing error cases
- */
-const invalidSubtitles = [
-  { start: -1000, end: 5000, text: 'Negative start time' },
-  { start: 5000, end: 3000, text: 'End before start' },
-  { start: 10000, end: 15000, text: '' }, // Empty text
-]
 
 /**
  * Returns a new array with the items in reverse order.
@@ -1320,61 +1320,50 @@ describe('SubtitleConverter', () => {
           cleanText: true,
         })
 
-        // Create temporary directory for test files
-        const tempDir = yield* E.try({
-          try: () => os.tmpdir(),
-          catch: () => '/tmp'
-        })
-
-        const testDir = yield* E.try({
-          try: () => path.join(tempDir, `subtitle-test-${Date.now()}`),
-          catch: () => path.join('/tmp', `subtitle-test-${Date.now()}`)
-        })
+        // In-memory file system mock
+        const memoryFS: Record<string, string> = {};
+        const dirs: Set<string> = new Set();
+        const fsMock = {
+          makeDirectory: (path: string, _opts?: any) => {
+            dirs.add(path);
+            return E.succeed(undefined);
+          },
+          writeFileString: (path: string, content: string) => {
+            memoryFS[path] = content;
+            return E.succeed(undefined);
+          },
+          readFileString: (path: string) => {
+            if (memoryFS[path] !== undefined) return E.succeed(memoryFS[path]);
+            return E.fail(new Error('File not found: ' + path));
+          },
+          remove: (path: string, opts?: { recursive?: boolean }) => {
+            if (dirs.has(path) && opts?.recursive) {
+              // Remove all files in this "directory"
+              Object.keys(memoryFS).forEach((file) => {
+                if (file.startsWith(path + '/')) delete memoryFS[file];
+              });
+              dirs.delete(path);
+            } else if (memoryFS[path] !== undefined) {
+              delete memoryFS[path];
+            } else {
+              // ignore if not found
+            }
+            return E.succeed(undefined);
+          },
+        };
+        const fs = fsMock;
+        const testDir = `/tmp/subtitle-test-${Date.now()}`;
 
         // Create test directory and write files
-        yield* E.try({
-          try: () => {
-            // Create directory if it doesn't exist
-            if (!fs.existsSync(testDir)) {
-              fs.mkdirSync(testDir, { recursive: true })
-            }
-            
-            // Write files using Node.js fs
-            fs.writeFileSync(path.join(testDir, 'test.srt'), srtContent)
-            fs.writeFileSync(path.join(testDir, 'test.json'), jsonContent)
-            fs.writeFileSync(path.join(testDir, 'test.vtt'), vttContent)
-          },
-          catch: (error) => new Error(`Failed to write files: ${error}`)
-        })
+        yield* fs.makeDirectory(testDir, { recursive: true });
+        yield* fs.writeFileString(`${testDir}/test.srt`, srtContent);
+        yield* fs.writeFileString(`${testDir}/test.json`, jsonContent);
+        yield* fs.writeFileString(`${testDir}/test.vtt`, vttContent);
 
         // Verify files were created and contain expected content
-        const srtFileContent = yield* E.try({
-          try: () => {
-            return Promise.resolve(fs.readFileSync(path.join(testDir, 'test.srt'), 'utf8'))
-          },
-          catch: (error) => Promise.resolve(`Error reading file: ${error}`)
-        })
-
-        const jsonFileContent = yield* E.try({
-          try: () => {
-            return Promise.resolve(fs.readFileSync(path.join(testDir, 'test.json'), 'utf8'))
-          },
-          catch: (error) => Promise.resolve(`Error reading file: ${error}`)
-        })
-
-        const vttFileContent = yield* E.try({
-          try: () => {
-            return Promise.resolve(fs.readFileSync(path.join(testDir, 'test.vtt'), 'utf8'))
-          },
-          catch: (error) => Promise.resolve(`Error reading file: ${error}`)
-        })
-
-        // Wait for file operations to complete
-        const [srtResult, jsonResult, vttResult] = yield* E.all([
-          E.promise(() => srtFileContent),
-          E.promise(() => jsonFileContent),
-          E.promise(() => vttFileContent)
-        ])
+        const srtResult = yield* fs.readFileString(`${testDir}/test.srt`);
+        const jsonResult = yield* fs.readFileString(`${testDir}/test.json`);
+        const vttResult = yield* fs.readFileString(`${testDir}/test.vtt`);
 
         // Verify SRT file content
         expect(srtResult).toContain('1\n')
@@ -1404,26 +1393,10 @@ describe('SubtitleConverter', () => {
         expect(vttResult).toContain('[Speaker 2]: the future of technology')
 
         // Clean up test files
-        yield* E.try({
-          try: () => {
-            // Clean up files using Node.js fs
-            const files = ['test.srt', 'test.json', 'test.vtt']
-            files.forEach(file => {
-              const filePath = path.join(testDir, file)
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath)
-              }
-            })
-            
-            // Remove the test directory
-            if (fs.existsSync(testDir)) {
-              fs.rmdirSync(testDir)
-            }
-            
-            console.log(`Cleaned up files in: ${testDir}`)
-          },
-          catch: (error) => console.log(`Cleanup warning: ${error}`)
-        })
+        yield* fs.remove(`${testDir}/test.srt`);
+        yield* fs.remove(`${testDir}/test.json`);
+        yield* fs.remove(`${testDir}/test.vtt`);
+        yield* fs.remove(testDir, { recursive: true });
 
         console.log('\n=== File System Test Results ===')
         console.log(`SRT file size: ${srtResult.length} characters`)

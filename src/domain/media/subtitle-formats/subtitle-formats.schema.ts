@@ -1,4 +1,5 @@
 import { Schema } from 'effect'
+import { Data } from 'effect'
 
 /**
  * Represents a single subtitle item with timing and text content
@@ -40,22 +41,21 @@ export const ConversionOptions = Schema.Struct({
   cleanText: Schema.optional(Schema.Boolean),
 })
 
-/**
- * Result of converting subtitles to a specific format
- */
-export const SubtitleConversionResult = Schema.Struct({
-  /** The output format */
-  format: SubtitleFormat,
-  /** The converted content as a string */
-  content: Schema.String,
-})
+export class SubtitleConversionResult extends Data.TaggedClass("SubtitleConversionResult")<{
+  format: SubtitleFormat
+  content: string
+}> {}
 
 /**
  * Result of converting subtitles to multiple formats
  */
+export const SubtitleConversionResultSchema = Schema.Struct({
+  format: SubtitleFormat,
+  content: Schema.String,
+})
+
 export const MultipleFormatResult = Schema.Struct({
-  /** Array of conversion results for each requested format */
-  results: Schema.Array(SubtitleConversionResult),
+  results: Schema.Array(SubtitleConversionResultSchema),
 })
 
 // Type exports for use in other modules
@@ -63,5 +63,4 @@ export type SubtitleItem = Schema.Schema.Type<typeof SubtitleItem>
 export type SubtitleJson = Schema.Schema.Type<typeof SubtitleJson>
 export type SubtitleFormat = Schema.Schema.Type<typeof SubtitleFormat>
 export type ConversionOptions = Schema.Schema.Type<typeof ConversionOptions>
-export type SubtitleConversionResult = Schema.Schema.Type<typeof SubtitleConversionResult>
 export type MultipleFormatResult = Schema.Schema.Type<typeof MultipleFormatResult> 

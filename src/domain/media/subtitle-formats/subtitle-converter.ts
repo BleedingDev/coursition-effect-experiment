@@ -1,11 +1,12 @@
-import { Effect as E, Stream } from 'effect'
+import { Effect as E, Stream, Option } from 'effect'
+import { Schema } from 'effect'
 import {
   type ConversionOptions,
   type MultipleFormatResult,
-  type SubtitleConversionResult,
   type SubtitleFormat,
   type SubtitleItem,
   type SubtitleJson,
+  SubtitleConversionResultSchema,
 } from './subtitle-formats.schema'
 import {
   ConversionError,
@@ -23,25 +24,26 @@ import {
  */
 export const validateSubtitleData = (subtitles: SubtitleJson, allowEmptyText = false) =>
   E.gen(function* () {
-    // Check if subtitles is null or undefined
-    if (subtitles === null || subtitles === undefined) {
+    // Use Option to check for presence
+    const maybeSubtitles = Option.fromNullable(subtitles)
+    if (Option.isNone(maybeSubtitles)) {
       return yield* E.fail(new InvalidSubtitleDataError({
         reason: 'Subtitle data cannot be null or undefined',
         data: subtitles,
       }))
     }
-
+    // Unwrap safely
+    const actualSubtitles = maybeSubtitles.value
     // Check if subtitles array exists and is not empty
-    if (!Array.isArray(subtitles) || subtitles.length === 0) {
+    if (!Array.isArray(actualSubtitles) || actualSubtitles.length === 0) {
       return yield* E.fail(new InvalidSubtitleDataError({
         reason: 'Subtitle data must be a non-empty array',
-        data: subtitles,
+        data: actualSubtitles,
       }))
     }
-
     // Validate each subtitle item using generator for streaming validation
-    for (let i = 0; i < subtitles.length; i++) {
-      const subtitle = subtitles[i]
+    for (let i = 0; i < actualSubtitles.length; i++) {
+      const subtitle = actualSubtitles[i]
       
       // Validate required fields exist
       if (typeof subtitle.start !== 'number' || typeof subtitle.end !== 'number' || typeof subtitle.text !== 'string') {
@@ -83,10 +85,15 @@ export const validateSubtitleData = (subtitles: SubtitleJson, allowEmptyText = f
       }
     }
 
-    return subtitles
+    return actualSubtitles
   }).pipe(
     E.tapError(E.logError),
-    E.withSpan('validateSubtitleData', { attributes: { count: Array.isArray(subtitles) ? subtitles.length : 0 } })
+    E.withSpan('validateSubtitleData', {
+      attributes: {
+        count: Array.isArray(subtitles) ? subtitles.length : 0,
+        hasOptions: allowEmptyText !== undefined
+      }
+    })
   )
 
 /**
@@ -616,14 +623,12 @@ export const SubtitleConverterLive = {
    */
   convertMultiple: (subtitles: SubtitleJson, formats: SubtitleFormat[], options?: ConversionOptions) =>
     E.gen(function* () {
-      const results: SubtitleConversionResult[] = []
-      
+      const results: Array<Schema.Schema.Type<typeof SubtitleConversionResultSchema>> = []
       // Use generator to process each format
       for (const format of formats) {
         const content = yield* convertSubtitleFormat(subtitles, format, options)
         results.push({ format, content })
       }
-      
       return { results } as MultipleFormatResult
     }).pipe(
       E.tapError(E.logError),

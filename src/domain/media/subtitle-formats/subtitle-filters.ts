@@ -1,4 +1,4 @@
-import { Effect as E } from 'effect'
+import { Option } from 'effect'
 import { type SubtitleItem } from './subtitle-formats.schema'
 
 /**
@@ -48,19 +48,20 @@ export const addTimingOffset = (offset: number) => (subtitle: SubtitleItem): Sub
  * Filters a subtitle by speaker ID
  * 
  * @param speakerId - The speaker ID to filter by
- * @returns Function that takes a subtitle item and returns it if it matches, or null if it doesn't
+ * @returns Function that takes a subtitle item and returns it if it matches, or Option.none if it doesn't
  */
-export const filterBySpeaker = (speakerId: number) => (subtitle: SubtitleItem): SubtitleItem | null => 
-  subtitle.speaker === speakerId ? subtitle : null
+
+export const filterBySpeaker = (speakerId: number) => (subtitle: SubtitleItem): Option.Option<SubtitleItem> =>
+  subtitle.speaker === speakerId ? Option.some(subtitle) : Option.none()
 
 /**
  * Filters a subtitle by multiple speaker IDs
  * 
  * @param speakerIds - Array of speaker IDs to include
- * @returns Function that takes a subtitle item and returns it if it matches, or null if it doesn't
+ * @returns Function that takes a subtitle item and returns it if it matches, or Option.none if it doesn't
  */
-export const filterBySpeakers = (speakerIds: number[]) => (subtitle: SubtitleItem): SubtitleItem | null => 
-  subtitle.speaker !== undefined && speakerIds.includes(subtitle.speaker) ? subtitle : null
+export const filterBySpeakers = (speakerIds: number[]) => (subtitle: SubtitleItem): Option.Option<SubtitleItem> => 
+  typeof subtitle.speaker === 'number' && speakerIds.includes(subtitle.speaker) ? Option.some(subtitle) : Option.none()
 
 /**
  * Adds a custom prefix to subtitle text
@@ -89,11 +90,11 @@ export const addSuffix = (suffix: string) => (subtitle: SubtitleItem): SubtitleI
  * 
  * @param minDuration - Minimum duration in milliseconds
  * @param maxDuration - Maximum duration in milliseconds
- * @returns Function that takes a subtitle item and returns it if duration matches, or null if it doesn't
+ * @returns Function that takes a subtitle item and returns it if duration matches, or Option.none if it doesn't
  */
-export const filterByDuration = (minDuration: number, maxDuration: number) => (subtitle: SubtitleItem): SubtitleItem | null => {
+export const filterByDuration = (minDuration: number, maxDuration: number) => (subtitle: SubtitleItem): Option.Option<SubtitleItem> => {
       const duration = subtitle.end - subtitle.start
-  return duration >= minDuration && duration <= maxDuration ? subtitle : null
+  return duration >= minDuration && duration <= maxDuration ? Option.some(subtitle) : Option.none()
 }
 
 /**
@@ -101,10 +102,10 @@ export const filterByDuration = (minDuration: number, maxDuration: number) => (s
  * 
  * @param startTime - Start time in milliseconds
  * @param endTime - End time in milliseconds
- * @returns Function that takes a subtitle item and returns it if it overlaps, or null if it doesn't
+ * @returns Function that takes a subtitle item and returns it if it overlaps, or Option.none if it doesn't
  */
-export const filterByTimeRange = (startTime: number, endTime: number) => (subtitle: SubtitleItem): SubtitleItem | null => 
-  subtitle.start < endTime && subtitle.end > startTime ? subtitle : null
+export const filterByTimeRange = (startTime: number, endTime: number) => (subtitle: SubtitleItem): Option.Option<SubtitleItem> => 
+  subtitle.start < endTime && subtitle.end > startTime ? Option.some(subtitle) : Option.none()
 
 /**
  * Transforms text using a custom function
@@ -150,10 +151,10 @@ export const capitalize = (subtitle: SubtitleItem): SubtitleItem => ({
 /**
  * Filters out subtitles with empty or whitespace-only text
  * 
- * @returns Function that takes a subtitle item and returns it if not empty, or null if empty
+ * @returns Function that takes a subtitle item and returns it if not empty, or Option.none if empty
  */
-export const removeEmptySubtitles = (subtitle: SubtitleItem): SubtitleItem | null => 
-  subtitle.text.trim().length > 0 ? subtitle : null
+export const removeEmptySubtitles = (subtitle: SubtitleItem): Option.Option<SubtitleItem> => 
+  subtitle.text.trim().length > 0 ? Option.some(subtitle) : Option.none()
 
 /**
  * Debug function that logs subtitle information
@@ -162,57 +163,22 @@ export const removeEmptySubtitles = (subtitle: SubtitleItem): SubtitleItem | nul
  * @returns Function that takes a subtitle item, logs it, and returns it unchanged
  */
 export const debugSubtitle = (label?: string) => (subtitle: SubtitleItem): SubtitleItem => {
-  console.log(`${label ? `[${label}] ` : ''}Subtitle:`, {
-    start: subtitle.start,
-    end: subtitle.end,
-    text: subtitle.text,
-    speaker: subtitle.speaker
-  })
+  console.log(subtitle)
   return subtitle
 }
 
 /**
- * Validates a subtitle item and returns it if valid, or null if invalid
+ * Validates a subtitle item and returns it if valid, or Option.none if invalid
  * 
  * @returns Function that takes a subtitle item and validates it
  */
-export const validateSubtitle = (subtitle: SubtitleItem): SubtitleItem | null => {
+export const validateSubtitle = (subtitle: SubtitleItem): Option.Option<SubtitleItem> => {
   // Basic validation rules
-  if (subtitle.start < 0) return null
-  if (subtitle.end <= subtitle.start) return null
-  if (subtitle.text.trim().length === 0) return null
-  
-  return subtitle
+  if (subtitle.start < 0) return Option.none()
+  if (subtitle.end <= subtitle.start) return Option.none()
+  if (subtitle.text.trim().length === 0) return Option.none()
+  return Option.some(subtitle)
 }
-
-/**
- * Composes multiple filter functions into a single function
- * Each filter is applied in sequence, and if any filter returns null, the result is null
- * 
- * @param filters - Array of filter functions to compose
- * @returns Composed filter function
- */
-export const composeFilters = <T extends SubtitleItem | null>(
-  ...filters: Array<(subtitle: SubtitleItem) => T>
-) => (subtitle: SubtitleItem): T => {
-  return filters.reduce((result, filter) => {
-    if (result === null) return null as T
-    return filter(result)
-  }, subtitle as T)
-}
-
-/**
- * Conditional filter that applies a filter only if a predicate is true
- * 
- * @param predicate - Function that determines if the filter should be applied
- * @param filter - Filter function to apply conditionally
- * @returns Conditional filter function
- */
-export const conditionalFilter = (
-  predicate: (subtitle: SubtitleItem) => boolean,
-  filter: (subtitle: SubtitleItem) => SubtitleItem | null
-) => (subtitle: SubtitleItem): SubtitleItem | null => 
-  predicate(subtitle) ? filter(subtitle) : subtitle
 
 /**
  * Utility function to convert array-based operations to streaming operations
@@ -221,10 +187,10 @@ export const conditionalFilter = (
  * @param filter - Single item filter function
  * @returns Array-based filter function
  */
-export const toArrayFilter = <T extends SubtitleItem | null>(
-  filter: (subtitle: SubtitleItem) => T
+export const toArrayFilter = <T extends SubtitleItem>(
+  filter: (subtitle: SubtitleItem) => Option.Option<T>
 ) => (subtitles: SubtitleItem[]): T[] => 
-  subtitles.map(filter).filter((item): item is T => item !== null)
+  subtitles.map(filter).filter(Option.isSome).map(opt => opt.value)
 
 /**
  * Utility function to convert streaming operations to array-based operations
@@ -233,9 +199,9 @@ export const toArrayFilter = <T extends SubtitleItem | null>(
  * @param arrayFilter - Array-based filter function
  * @returns Single item filter function
  */
-export const fromArrayFilter = <T extends SubtitleItem | null>(
+export const fromArrayFilter = <T extends SubtitleItem>(
   arrayFilter: (subtitles: SubtitleItem[]) => T[]
-) => (subtitle: SubtitleItem): T => {
+) => (subtitle: SubtitleItem): Option.Option<T> => {
   const result = arrayFilter([subtitle])
-  return result.length > 0 ? result[0]! : null as T
+  return result.length > 0 ? Option.some(result[0]!) : Option.none()
 } 
