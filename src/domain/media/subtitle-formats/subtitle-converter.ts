@@ -28,8 +28,7 @@ export const validateSubtitleData = (subtitles: SubtitleJson, allowEmptyText = f
     const maybeSubtitles = Option.fromNullable(subtitles)
     if (Option.isNone(maybeSubtitles)) {
       return yield* E.fail(new InvalidSubtitleDataError({
-        reason: 'Subtitle data cannot be null or undefined',
-        data: subtitles,
+        cause: new Error('Subtitle data cannot be null or undefined'),
       }))
     }
     // Unwrap safely
@@ -37,8 +36,7 @@ export const validateSubtitleData = (subtitles: SubtitleJson, allowEmptyText = f
     // Check if subtitles array exists and is not empty
     if (!Array.isArray(actualSubtitles) || actualSubtitles.length === 0) {
       return yield* E.fail(new InvalidSubtitleDataError({
-        reason: 'Subtitle data must be a non-empty array',
-        data: actualSubtitles,
+        cause: new Error('Subtitle data must be a non-empty array'),
       }))
     }
     // Validate each subtitle item using generator for streaming validation
@@ -48,39 +46,34 @@ export const validateSubtitleData = (subtitles: SubtitleJson, allowEmptyText = f
       // Validate required fields exist
       if (typeof subtitle.start !== 'number' || typeof subtitle.end !== 'number' || typeof subtitle.text !== 'string') {
         return yield* E.fail(new InvalidSubtitleDataError({
-          reason: `Subtitle at index ${i} must have start (number), end (number), and text (string) fields`,
-          data: subtitle,
+          cause: new Error(`Subtitle at index ${i} must have start (number), end (number), and text (string) fields`),
         }))
       }
 
       // Validate timing logic
       if (subtitle.start < 0 || subtitle.end < 0) {
         return yield* E.fail(new InvalidTimingError({
-          reason: `Subtitle at index ${i} has negative timing values`,
-          subtitle,
+          cause: new Error(`Subtitle at index ${i} has negative timing values`),
         }))
       }
 
       if (subtitle.start >= subtitle.end) {
         return yield* E.fail(new InvalidTimingError({
-          reason: `Subtitle at index ${i} has start time >= end time`,
-          subtitle,
+          cause: new Error(`Subtitle at index ${i} has start time >= end time`),
         }))
       }
 
       // Validate text is not empty (unless allowEmptyText is true)
       if (!allowEmptyText && subtitle.text.trim().length === 0) {
         return yield* E.fail(new InvalidSubtitleDataError({
-          reason: `Subtitle at index ${i} has empty text content`,
-          data: subtitle,
+          cause: new Error(`Subtitle at index ${i} has empty text content`),
         }))
       }
 
       // Validate speaker field if present
       if (subtitle.speaker !== undefined && (subtitle.speaker < 0 || !Number.isInteger(subtitle.speaker))) {
         return yield* E.fail(new InvalidSubtitleDataError({
-          reason: `Subtitle at index ${i} has invalid speaker value (must be non-negative integer)`,
-          data: subtitle,
+          cause: new Error(`Subtitle at index ${i} has invalid speaker value (must be non-negative integer)`),
         }))
       }
     }
@@ -444,7 +437,10 @@ export const formatTimeVtt = (ms: number): string => {
 export const convertToJson = (subtitles: SubtitleItem[]) =>
   E.try({
     try: () => JSON.stringify(subtitles, null, 2),
-    catch: (error) => new ConversionError({ format: 'json', cause: error }),
+    catch: (error) => new ConversionError({ 
+      format: 'json', 
+      cause: error instanceof Error ? error : new Error(String(error))
+    }),
   }).pipe(
     E.tapError(E.logError),
     E.withSpan('convertToJson', { attributes: { count: subtitles.length } })

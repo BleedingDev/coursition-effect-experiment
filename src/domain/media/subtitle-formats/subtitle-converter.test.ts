@@ -1,7 +1,5 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { FileSystem } from '@effect/platform'
-import { Layer } from 'effect'
 import {
   SubtitleConverterLive,
   processSubtitles,
@@ -76,16 +74,16 @@ describe('SubtitleConverter', () => {
     it.effect('should reject invalid subtitle data', () =>
       E.gen(function* () {
         const result = yield* validateSubtitleData(invalidSubtitles as any)
-        expect('reason' in result).toBe(true)
+        expect('cause' in result).toBe(true)
       }).pipe(E.catchAll(E.succeed))
     )
 
     it.effect('should reject empty subtitle array', () =>
       E.gen(function* () {
         const result = yield* validateSubtitleData([])
-        expect('reason' in result).toBe(true)
-        if ('reason' in result) {
-          expect(result.reason).toBe('Subtitle data must be a non-empty array')
+        expect('cause' in result).toBe(true)
+        if ('cause' in result && result.cause instanceof Error) {
+          expect(result.cause.message).toBe('Subtitle data must be a non-empty array')
         }
       }).pipe(E.catchAll(E.succeed))
     )
@@ -93,7 +91,7 @@ describe('SubtitleConverter', () => {
     it.effect('should reject null subtitle data', () =>
       E.gen(function* () {
         const result = yield* validateSubtitleData(null as any)
-        expect('reason' in result).toBe(true)
+        expect('cause' in result).toBe(true)
       }).pipe(E.catchAll(E.succeed))
     )
   })
