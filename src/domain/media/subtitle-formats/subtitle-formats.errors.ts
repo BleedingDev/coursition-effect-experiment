@@ -1,5 +1,39 @@
-import { Data } from 'effect'
+import { Data, Schema } from 'effect'
 
+// API boundary errors (for HttpApi serialization)
+export class SubtitleDataInvalid extends Schema.TaggedError<SubtitleDataInvalid>()(
+  'SubtitleDataInvalid',
+  {},
+) {}
+
+export class SubtitleFormatUnsupported extends Schema.TaggedError<SubtitleFormatUnsupported>()(
+  'SubtitleFormatUnsupported',
+  {
+    format: Schema.String,
+    supportedFormats: Schema.Array(Schema.String)
+  },
+) {}
+
+export class SubtitleTimingInvalid extends Schema.TaggedError<SubtitleTimingInvalid>()(
+  'SubtitleTimingInvalid',
+  {},
+) {}
+
+export class SubtitleConversionFailed extends Schema.TaggedError<SubtitleConversionFailed>()(
+  'SubtitleConversionFailed',
+  {
+    format: Schema.String
+  },
+) {}
+
+export class SubtitleProcessingFailed extends Schema.TaggedError<SubtitleProcessingFailed>()(
+  'SubtitleProcessingFailed',
+  {
+    step: Schema.String
+  },
+) {}
+
+// Internal domain errors (for business logic)
 export class InvalidSubtitleDataError extends Data.TaggedError('InvalidSubtitleDataError')<{
   readonly cause: Error
 }> {}
