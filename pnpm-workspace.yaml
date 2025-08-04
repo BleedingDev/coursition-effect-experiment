@@ -1,4 +1,7 @@
 onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - '@parcel/watcher'
+  - esbuild
   - msgpackr-extract
 
 # Dependency catalogs for better organization and version management
