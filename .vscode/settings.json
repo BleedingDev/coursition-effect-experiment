@@ -1,4 +1,12 @@
 {
+  "workbench.colorCustomizations": {
+    "editor.selectionBackground": "#135ba2",
+    "editor.selectionHighlightBackground": "#264f7844",
+    "editor.findMatchBackground": "#515c6a",
+    "editor.findMatchHighlightBackground": "#515c6a40",
+    "editor.findMatchBorder": "#515c6a",
+    "editor.findMatchHighlightBorder": "#515c6a40"
+  },
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.preferences.includePackageJsonAutoImports": "auto",
