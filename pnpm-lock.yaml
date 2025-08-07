@@ -92,9 +92,6 @@ importers:
       '@restatedev/restate-sdk-clients':
         specifier: ^1.6.0
         version: 1.6.0
-      '@types/bun':
-        specifier: ^1.2.19
-        version: 1.2.19(@types/react@19.1.8)
       ai:
         specifier: 5.0.0-alpha.10
         version: 5.0.0-alpha.10(zod@3.25.56)
@@ -717,9 +714,6 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
-  '@types/bun@1.2.19':
-    resolution: {integrity: sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg==}
-
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
 
@@ -731,9 +725,6 @@ packages:
 
   '@types/node@24.0.14':
     resolution: {integrity: sha512-4zXMWD91vBLGRtHK3YbIoFMia+1nqEz72coM42C5ETjnNCa/heoj7NT1G67iAfOqMmcfhuCZ4uNpyz8EjlAejw==}
-
-  '@types/react@19.1.8':
-    resolution: {integrity: sha512-AwAfQ2Wa5bCx9WP8nZL2uMZWod7J7/JSplxbTmBQ5ms6QpqNYm672H0Vu9ZVKVngQ+ii4R/byguVEUZQyeg44g==}
 
   '@vitest/expect@3.2.2':
     resolution: {integrity: sha512-ipHw0z669vEMjzz3xQE8nJX1s0rQIb7oEl4jjl35qWTwm/KIHERIg/p/zORrjAaZKXfsv7IybcNGHwhOOAPMwQ==}
@@ -791,11 +782,6 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  bun-types@1.2.19:
-    resolution: {integrity: sha512-uAOTaZSPuYsWIXRpj7o56Let0g/wjihKCkeRqUBhlLVM/Bt+Fj9xTo+LhC1OV1XDaGkz4hNC80et5xgy+9KTHQ==}
-    peerDependencies:
-      '@types/react': ^19
-
   cac@6.7.14:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
     engines: {node: '>=8'}
@@ -822,9 +808,6 @@ packages:
   commander@14.0.0:
     resolution: {integrity: sha512-2uM9rYjPvyq39NwLRqaiLtWHyDC1FvryJDa2ATTVims5YAS4PupsEQsDvP14FqhFr0P49CYDugi59xaxJlTXRA==}
     engines: {node: '>=20'}
-
-  csstype@3.1.3:
-    resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
 
   debug@4.4.1:
     resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
@@ -1607,12 +1590,6 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@types/bun@1.2.19(@types/react@19.1.8)':
-    dependencies:
-      bun-types: 1.2.19(@types/react@19.1.8)
-    transitivePeerDependencies:
-      - '@types/react'
-
   '@types/chai@5.2.2':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -1624,10 +1601,7 @@ snapshots:
   '@types/node@24.0.14':
     dependencies:
       undici-types: 7.8.0
-
-  '@types/react@19.1.8':
-    dependencies:
-      csstype: 3.1.3
+    optional: true
 
   '@vitest/expect@3.2.2':
     dependencies:
@@ -1701,11 +1675,6 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  bun-types@1.2.19(@types/react@19.1.8):
-    dependencies:
-      '@types/node': 24.0.14
-      '@types/react': 19.1.8
-
   cac@6.7.14: {}
 
   chai@5.2.0:
@@ -1730,8 +1699,6 @@ snapshots:
   color-name@1.1.4: {}
 
   commander@14.0.0: {}
-
-  csstype@3.1.3: {}
 
   debug@4.4.1:
     dependencies:
@@ -1998,7 +1965,8 @@ snapshots:
     dependencies:
       commander: 14.0.0
 
-  undici-types@7.8.0: {}
+  undici-types@7.8.0:
+    optional: true
 
   uuid@11.1.0: {}
 

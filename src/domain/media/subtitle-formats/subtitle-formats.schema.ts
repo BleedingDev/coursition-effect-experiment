@@ -41,7 +41,9 @@ export const ConversionOptions = Schema.Struct({
   cleanText: Schema.optional(Schema.Boolean),
 })
 
-export class SubtitleConversionResult extends Data.TaggedClass("SubtitleConversionResult")<{
+export class SubtitleConversionResult extends Data.TaggedClass(
+  'SubtitleConversionResult',
+)<{
   format: SubtitleFormat
   content: string
 }> {}
@@ -63,4 +65,6 @@ export type SubtitleItem = Schema.Schema.Type<typeof SubtitleItem>
 export type SubtitleJson = Schema.Schema.Type<typeof SubtitleJson>
 export type SubtitleFormat = Schema.Schema.Type<typeof SubtitleFormat>
 export type ConversionOptions = Schema.Schema.Type<typeof ConversionOptions>
-export type MultipleFormatResult = Schema.Schema.Type<typeof MultipleFormatResult> 
+export type MultipleFormatResult = Schema.Schema.Type<
+  typeof MultipleFormatResult
+>

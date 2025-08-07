@@ -1,27 +1,27 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
+import { Option } from 'effect'
 import {
   SubtitleConverterLive,
-  processSubtitles,
-  validateSubtitleData,
-  runSubtitleProcessingStream,
-  runSubtitleConversionStream,
+  type SubtitleItem,
   addSpeakerInfo,
-  type SubtitleItem
+  processSubtitles,
+  runSubtitleConversionStream,
+  runSubtitleProcessingStream,
+  validateSubtitleData,
 } from './subtitle-converter'
+import {
+  addPrefix,
+  addTimingOffset,
+  applyFiltersToArray,
+  filterBySpeaker,
+  replaceText,
+  streamSubtitles,
+} from './subtitle-filters'
 import {
   InvalidTimingError,
   UnsupportedFormatError,
 } from './subtitle-formats.errors'
-import {
-  replaceText,
-  addTimingOffset,
-  filterBySpeaker,
-  addPrefix,
-  applyFiltersToArray,
-  streamSubtitles
-} from './subtitle-filters'
-import { Option } from 'effect'
 
 const sampleSubtitles: SubtitleItem[] = [
   { start: 0, end: 5000, text: 'Hello world' },
@@ -37,13 +37,13 @@ const invalidSubtitles = [
 
 /**
  * Creates a new array with the elements in reverse order.
- * 
+ *
  * @param arr Array to reverse
- * 
+ *
  * @returns Array in reverse order
  */
 function reverseArray<T>(arr: T[]): T[] {
-  return [...arr].reverse();
+  return [...arr].reverse()
 }
 
 describe('SubtitleConverter', () => {
@@ -52,14 +52,14 @@ describe('SubtitleConverter', () => {
       E.gen(function* () {
         const result = yield* validateSubtitleData(sampleSubtitles)
         expect(result).toEqual(sampleSubtitles)
-      })
+      }),
     )
 
     it.effect('should reject invalid subtitle data', () =>
       E.gen(function* () {
         const result = yield* validateSubtitleData(invalidSubtitles as any)
         expect('cause' in result).toBe(true)
-      }).pipe(E.catchAll(E.succeed))
+      }).pipe(E.catchAll(E.succeed)),
     )
 
     it.effect('should reject empty subtitle array', () =>
@@ -67,16 +67,18 @@ describe('SubtitleConverter', () => {
         const result = yield* validateSubtitleData([])
         expect('cause' in result).toBe(true)
         if ('cause' in result && result.cause instanceof Error) {
-          expect(result.cause.message).toBe('Subtitle data must be a non-empty array')
+          expect(result.cause.message).toBe(
+            'Subtitle data must be a non-empty array',
+          )
         }
-      }).pipe(E.catchAll(E.succeed))
+      }).pipe(E.catchAll(E.succeed)),
     )
 
     it.effect('should reject null subtitle data', () =>
       E.gen(function* () {
         const result = yield* validateSubtitleData(null as any)
         expect('cause' in result).toBe(true)
-      }).pipe(E.catchAll(E.succeed))
+      }).pipe(E.catchAll(E.succeed)),
     )
   })
 
@@ -92,7 +94,7 @@ describe('SubtitleConverter', () => {
         expect(result[0]?.end).toBe(6000)
         expect(result[1]?.start).toBe(6000)
         expect(result[1]?.end).toBe(11000)
-      })
+      }),
     )
 
     it.effect('should process subtitles with speaker info', () =>
@@ -105,27 +107,29 @@ describe('SubtitleConverter', () => {
         expect(result[0]?.text).toBe('Hello world')
         expect(result[1]?.text).toBe('This is a test')
         expect(result[2]?.text).toBe('[Speaker 1]: Subtitle processing')
-      })
+      }),
     )
 
-    it.effect('should process subtitles in correct order: timing → clean → speaker', () =>
-      E.gen(function* () {
-        const messySubtitles: SubtitleItem[] = [
-          { start: 0, end: 5000, text: '  Hello   world  ', speaker: 1 },
-          { start: 5000, end: 10000, text: '  This is a test  ' },
-        ]
+    it.effect(
+      'should process subtitles in correct order: timing → clean → speaker',
+      () =>
+        E.gen(function* () {
+          const messySubtitles: SubtitleItem[] = [
+            { start: 0, end: 5000, text: '  Hello   world  ', speaker: 1 },
+            { start: 5000, end: 10000, text: '  This is a test  ' },
+          ]
 
-        const result = yield* processSubtitles(messySubtitles, {
-          timingOffset: 1000,
-          includeSpeaker: true,
-        })
+          const result = yield* processSubtitles(messySubtitles, {
+            timingOffset: 1000,
+            includeSpeaker: true,
+          })
 
-        expect(result).toHaveLength(2)
-        expect(result[0]?.text).toBe('[Speaker 1]: Hello world')
-        expect(result[0]?.start).toBe(1000)
-        expect(result[1]?.text).toBe('This is a test')
-        expect(result[1]?.start).toBe(6000)
-      })
+          expect(result).toHaveLength(2)
+          expect(result[0]?.text).toBe('[Speaker 1]: Hello world')
+          expect(result[0]?.start).toBe(1000)
+          expect(result[1]?.text).toBe('This is a test')
+          expect(result[1]?.start).toBe(6000)
+        }),
     )
 
     it.effect('should merge adjacent subtitles', () =>
@@ -146,7 +150,7 @@ describe('SubtitleConverter', () => {
         expect(result[0]?.text).toBe('Hello world This is a test')
         expect(result[0]?.start).toBe(0)
         expect(result[0]?.end).toBe(20000)
-      })
+      }),
     )
 
     it.effect('should handle single subtitle without merging', () =>
@@ -159,17 +163,37 @@ describe('SubtitleConverter', () => {
 
         expect(result).toHaveLength(1)
         expect(result[0]?.text).toBe('Hello world')
-      })
+      }),
     )
 
     it.effect('should process subtitles and print valid SRT file', () =>
       E.gen(function* () {
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         const processedSubtitles = yield* processSubtitles(complexSubtitles, {
@@ -180,7 +204,10 @@ describe('SubtitleConverter', () => {
         })
 
         // Convert to SRT format
-        const srtContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'srt')
+        const srtContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'srt',
+        )
 
         // Print the SRT content
         console.log('\n=== Generated SRT File ===')
@@ -190,7 +217,9 @@ describe('SubtitleConverter', () => {
         // Verify the SRT content is valid
         expect(srtContent).toContain('1\n')
         expect(srtContent).toContain('00:00:00,500 --> 00:00:03,500\n')
-        expect(srtContent).toContain('[Speaker 1]: Welcome to our presentation\n')
+        expect(srtContent).toContain(
+          '[Speaker 1]: Welcome to our presentation\n',
+        )
         expect(srtContent).toContain('2\n')
         expect(srtContent).toContain('00:00:03,500 --> 00:00:06,500\n')
         expect(srtContent).toContain('[Speaker 1]: Today we will discuss\n')
@@ -202,7 +231,9 @@ describe('SubtitleConverter', () => {
         expect(srtContent).toContain('[Speaker 2]: and its impact on society\n')
         expect(srtContent).toContain('5\n')
         expect(srtContent).toContain('00:00:12,500 --> 00:00:15,500\n')
-        expect(srtContent).toContain('[Speaker 1]: Thank you for your attention\n')
+        expect(srtContent).toContain(
+          '[Speaker 1]: Thank you for your attention\n',
+        )
 
         // Verify the structure is correct (number, timing, text, empty line)
         const lines = srtContent.split('\n')
@@ -213,20 +244,44 @@ describe('SubtitleConverter', () => {
         expect(lines).toContain('5')
         expect(lines).toContain('') // Empty lines between subtitles
 
-        console.log(`Processed ${processedSubtitles.length} subtitles into SRT format`)
+        console.log(
+          `Processed ${processedSubtitles.length} subtitles into SRT format`,
+        )
         console.log(`SRT file contains ${lines.length} lines`)
-        console.log(`Original subtitles: ${complexSubtitles.length}, Processed subtitles: ${processedSubtitles.length}`)
-      })
+        console.log(
+          `Original subtitles: ${complexSubtitles.length}, Processed subtitles: ${processedSubtitles.length}`,
+        )
+      }),
     )
 
     it.effect('should process subtitles and print valid JSON format', () =>
       E.gen(function* () {
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         const processedSubtitles = yield* processSubtitles(complexSubtitles, {
@@ -236,7 +291,10 @@ describe('SubtitleConverter', () => {
           mergeAdjacent: false,
         })
 
-        const jsonContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'json')
+        const jsonContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'json',
+        )
 
         console.log('\n=== Generated JSON Format ===')
         console.log(jsonContent)
@@ -250,50 +308,72 @@ describe('SubtitleConverter', () => {
           start: 500,
           end: 3500,
           text: '[Speaker 1]: Welcome to our presentation',
-          speaker: 1
+          speaker: 1,
         })
 
         expect(parsedJson[1]).toEqual({
           start: 3500,
           end: 6500,
           text: '[Speaker 1]: Today we will discuss',
-          speaker: 1
+          speaker: 1,
         })
 
         expect(parsedJson[2]).toEqual({
           start: 6500,
           end: 9500,
           text: '[Speaker 2]: the future of technology',
-          speaker: 2
+          speaker: 2,
         })
 
         expect(parsedJson[3]).toEqual({
           start: 9500,
           end: 12500,
           text: '[Speaker 2]: and its impact on society',
-          speaker: 2
+          speaker: 2,
         })
 
         expect(parsedJson[4]).toEqual({
           start: 12500,
           end: 15500,
           text: '[Speaker 1]: Thank you for your attention',
-          speaker: 1
+          speaker: 1,
         })
 
-        console.log(`Processed ${processedSubtitles.length} subtitles into JSON format`)
+        console.log(
+          `Processed ${processedSubtitles.length} subtitles into JSON format`,
+        )
         console.log(`JSON contains ${parsedJson.length} subtitle entries`)
-      })
+      }),
     )
 
     it.effect('should process subtitles and print valid VTT format', () =>
       E.gen(function* () {
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         const processedSubtitles = yield* processSubtitles(complexSubtitles, {
@@ -303,7 +383,10 @@ describe('SubtitleConverter', () => {
           mergeAdjacent: false,
         })
 
-        const vttContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'vtt')
+        const vttContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'vtt',
+        )
 
         console.log('\n=== Generated VTT Format ===')
         console.log(vttContent)
@@ -311,7 +394,9 @@ describe('SubtitleConverter', () => {
 
         expect(vttContent).toContain('WEBVTT\n')
         expect(vttContent).toContain('00:00:00.500 --> 00:00:03.500\n')
-        expect(vttContent).toContain('[Speaker 1]: Welcome to our presentation\n')
+        expect(vttContent).toContain(
+          '[Speaker 1]: Welcome to our presentation\n',
+        )
         expect(vttContent).toContain('00:00:03.500 --> 00:00:06.500\n')
         expect(vttContent).toContain('[Speaker 1]: Today we will discuss\n')
         expect(vttContent).toContain('00:00:06.500 --> 00:00:09.500\n')
@@ -319,132 +404,212 @@ describe('SubtitleConverter', () => {
         expect(vttContent).toContain('00:00:09.500 --> 00:00:12.500\n')
         expect(vttContent).toContain('[Speaker 2]: and its impact on society\n')
         expect(vttContent).toContain('00:00:12.500 --> 00:00:15.500\n')
-        expect(vttContent).toContain('[Speaker 1]: Thank you for your attention\n')
+        expect(vttContent).toContain(
+          '[Speaker 1]: Thank you for your attention\n',
+        )
 
         // Verify VTT-specific format (uses dots instead of commas for milliseconds)
         expect(vttContent).toMatch(/WEBVTT/)
-        expect(vttContent).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/)
+        expect(vttContent).toMatch(
+          /\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/,
+        )
 
         // Verify the structure is correct
         const lines = vttContent.split('\n')
         expect(lines[0]).toBe('WEBVTT')
         expect(lines).toContain('') // Empty lines between subtitles
 
-        console.log(`Processed ${processedSubtitles.length} subtitles into VTT format`)
+        console.log(
+          `Processed ${processedSubtitles.length} subtitles into VTT format`,
+        )
         console.log(`VTT file contains ${lines.length} lines`)
-      })
+      }),
     )
 
-    it.effect('should process subtitles and print valid plain text format', () =>
-      E.gen(function* () {
-        const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
-          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
-        ]
+    it.effect(
+      'should process subtitles and print valid plain text format',
+      () =>
+        E.gen(function* () {
+          const complexSubtitles: SubtitleItem[] = [
+            {
+              start: 0,
+              end: 3000,
+              text: 'Welcome to our presentation',
+              speaker: 1,
+            },
+            {
+              start: 3000,
+              end: 6000,
+              text: 'Today we will discuss',
+              speaker: 1,
+            },
+            {
+              start: 6000,
+              end: 9000,
+              text: 'the future of technology',
+              speaker: 2,
+            },
+            {
+              start: 9000,
+              end: 12000,
+              text: 'and its impact on society',
+              speaker: 2,
+            },
+            {
+              start: 12000,
+              end: 15000,
+              text: 'Thank you for your attention',
+              speaker: 1,
+            },
+          ]
 
-        const processedSubtitles = yield* processSubtitles(complexSubtitles, {
-          timingOffset: 500,
-          includeSpeaker: true,
-          cleanText: true,
-          mergeAdjacent: false,
-        })
+          const processedSubtitles = yield* processSubtitles(complexSubtitles, {
+            timingOffset: 500,
+            includeSpeaker: true,
+            cleanText: true,
+            mergeAdjacent: false,
+          })
 
-        const textContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'plain-text')
+          const textContent = yield* SubtitleConverterLive.convert(
+            processedSubtitles,
+            'plain-text',
+          )
 
-        console.log('\n=== Generated Plain Text Format ===')
-        console.log(textContent)
-        console.log('=== End Plain Text Format ===\n')
+          console.log('\n=== Generated Plain Text Format ===')
+          console.log(textContent)
+          console.log('=== End Plain Text Format ===\n')
 
-        expect(textContent).toContain('[Speaker 1]: Welcome to our presentation')
-        expect(textContent).toContain('[Speaker 1]: Today we will discuss')
-        expect(textContent).toContain('[Speaker 2]: the future of technology')
-        expect(textContent).toContain('[Speaker 2]: and its impact on society')
-        expect(textContent).toContain('[Speaker 1]: Thank you for your attention')
+          expect(textContent).toContain(
+            '[Speaker 1]: Welcome to our presentation',
+          )
+          expect(textContent).toContain('[Speaker 1]: Today we will discuss')
+          expect(textContent).toContain('[Speaker 2]: the future of technology')
+          expect(textContent).toContain(
+            '[Speaker 2]: and its impact on society',
+          )
+          expect(textContent).toContain(
+            '[Speaker 1]: Thank you for your attention',
+          )
 
-        // Verify the structure (text separated by double newlines)
-        const lines = textContent.split('\n')
-        expect(lines).toContain('[Speaker 1]: Welcome to our presentation')
-        expect(lines).toContain('[Speaker 1]: Today we will discuss')
-        expect(lines).toContain('[Speaker 2]: the future of technology')
-        expect(lines).toContain('[Speaker 2]: and its impact on society')
-        expect(lines).toContain('[Speaker 1]: Thank you for your attention')
-        expect(lines).toContain('') // Empty lines between subtitles
+          // Verify the structure (text separated by double newlines)
+          const lines = textContent.split('\n')
+          expect(lines).toContain('[Speaker 1]: Welcome to our presentation')
+          expect(lines).toContain('[Speaker 1]: Today we will discuss')
+          expect(lines).toContain('[Speaker 2]: the future of technology')
+          expect(lines).toContain('[Speaker 2]: and its impact on society')
+          expect(lines).toContain('[Speaker 1]: Thank you for your attention')
+          expect(lines).toContain('') // Empty lines between subtitles
 
-        // Verify no timing information is included in plain text
-        expect(textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/)
-        expect(textContent).not.toMatch(/-->/)
+          // Verify no timing information is included in plain text
+          expect(textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/)
+          expect(textContent).not.toMatch(/-->/)
 
-        console.log(`Processed ${processedSubtitles.length} subtitles into plain text format`)
-        console.log(`Plain text contains ${lines.length} lines`)
-      })
+          console.log(
+            `Processed ${processedSubtitles.length} subtitles into plain text format`,
+          )
+          console.log(`Plain text contains ${lines.length} lines`)
+        }),
     )
 
-    it.effect('should process subtitles and print all formats for comparison', () =>
-      E.gen(function* () {
-        const simpleSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Hello world', speaker: 1 },
-          { start: 3000, end: 6000, text: 'This is a test', speaker: 2 },
-        ]
+    it.effect(
+      'should process subtitles and print all formats for comparison',
+      () =>
+        E.gen(function* () {
+          const simpleSubtitles: SubtitleItem[] = [
+            { start: 0, end: 3000, text: 'Hello world', speaker: 1 },
+            { start: 3000, end: 6000, text: 'This is a test', speaker: 2 },
+          ]
 
-        const processedSubtitles = yield* processSubtitles(simpleSubtitles, {
-          timingOffset: 1000,
-          includeSpeaker: true,
-          cleanText: true,
-          mergeAdjacent: false,
-        })
+          const processedSubtitles = yield* processSubtitles(simpleSubtitles, {
+            timingOffset: 1000,
+            includeSpeaker: true,
+            cleanText: true,
+            mergeAdjacent: false,
+          })
 
-        const jsonContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'json')
-        const srtContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'srt')
-        const vttContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'vtt')
-        const textContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'plain-text')
+          const jsonContent = yield* SubtitleConverterLive.convert(
+            processedSubtitles,
+            'json',
+          )
+          const srtContent = yield* SubtitleConverterLive.convert(
+            processedSubtitles,
+            'srt',
+          )
+          const vttContent = yield* SubtitleConverterLive.convert(
+            processedSubtitles,
+            'vtt',
+          )
+          const textContent = yield* SubtitleConverterLive.convert(
+            processedSubtitles,
+            'plain-text',
+          )
 
-        // Print all formats for comparison
-        console.log('\n=== Format Comparison ===')
-        console.log('JSON Format:')
-        console.log(jsonContent)
-        console.log('\nSRT Format:')
-        console.log(srtContent)
-        console.log('\nVTT Format:')
-        console.log(vttContent)
-        console.log('\nPlain Text Format:')
-        console.log(textContent)
-        console.log('=== End Format Comparison ===\n')
+          // Print all formats for comparison
+          console.log('\n=== Format Comparison ===')
+          console.log('JSON Format:')
+          console.log(jsonContent)
+          console.log('\nSRT Format:')
+          console.log(srtContent)
+          console.log('\nVTT Format:')
+          console.log(vttContent)
+          console.log('\nPlain Text Format:')
+          console.log(textContent)
+          console.log('=== End Format Comparison ===\n')
 
-        // Verify each format has the correct structure
-        const parsedJson = JSON.parse(jsonContent)
-        expect(parsedJson).toHaveLength(2)
-        expect(parsedJson[0].text).toBe('[Speaker 1]: Hello world')
+          // Verify each format has the correct structure
+          const parsedJson = JSON.parse(jsonContent)
+          expect(parsedJson).toHaveLength(2)
+          expect(parsedJson[0].text).toBe('[Speaker 1]: Hello world')
 
-        expect(srtContent).toContain('1\n')
-        expect(srtContent).toContain('00:00:01,000 --> 00:00:04,000\n')
-        expect(srtContent).toContain('[Speaker 1]: Hello world\n')
+          expect(srtContent).toContain('1\n')
+          expect(srtContent).toContain('00:00:01,000 --> 00:00:04,000\n')
+          expect(srtContent).toContain('[Speaker 1]: Hello world\n')
 
-        expect(vttContent).toContain('WEBVTT\n')
-        expect(vttContent).toContain('00:00:01.000 --> 00:00:04.000\n')
-        expect(vttContent).toContain('[Speaker 1]: Hello world\n')
+          expect(vttContent).toContain('WEBVTT\n')
+          expect(vttContent).toContain('00:00:01.000 --> 00:00:04.000\n')
+          expect(vttContent).toContain('[Speaker 1]: Hello world\n')
 
-        expect(textContent).toBe('[Speaker 1]: Hello world\n\n[Speaker 2]: This is a test')
+          expect(textContent).toBe(
+            '[Speaker 1]: Hello world\n\n[Speaker 2]: This is a test',
+          )
 
-        console.log('All formats generated successfully!')
-        console.log(`JSON: ${parsedJson.length} entries`)
-        console.log(`SRT: ${srtContent.split('\\n').length} lines`)
-        console.log(`VTT: ${vttContent.split('\\n').length} lines`)
-        console.log(`Plain Text: ${textContent.split('\\n').length} lines`)
-      })
+          console.log('All formats generated successfully!')
+          console.log(`JSON: ${parsedJson.length} entries`)
+          console.log(`SRT: ${srtContent.split('\\n').length} lines`)
+          console.log(`VTT: ${vttContent.split('\\n').length} lines`)
+          console.log(`Plain Text: ${textContent.split('\\n').length} lines`)
+        }),
     )
 
     it.effect('should demonstrate file output function for all formats', () =>
       E.gen(function* () {
         // Create a complex subtitle dataset
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         // Process the subtitles
@@ -456,11 +621,15 @@ describe('SubtitleConverter', () => {
         })
 
         // Function to create file output string
-        const createFileOutput = (content: string, format: string, metadata?: {
-          originalCount?: number
-          processedCount?: number
-          processingOptions?: any
-        }) => {
+        const createFileOutput = (
+          content: string,
+          format: string,
+          metadata?: {
+            originalCount?: number
+            processedCount?: number
+            processingOptions?: any
+          },
+        ) => {
           const timestamp = new Date().toISOString()
           const header = [
             `# Subtitle File Generated by SubtitleConverter`,
@@ -485,10 +654,22 @@ describe('SubtitleConverter', () => {
         }
 
         // Convert to all formats and create file outputs
-        const jsonContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'json')
-        const srtContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'srt')
-        const vttContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'vtt')
-        const textContent = yield* SubtitleConverterLive.convert(processedSubtitles, 'plain-text')
+        const jsonContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'json',
+        )
+        const srtContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'srt',
+        )
+        const vttContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'vtt',
+        )
+        const textContent = yield* SubtitleConverterLive.convert(
+          processedSubtitles,
+          'plain-text',
+        )
 
         // Create file outputs with metadata
         const jsonFileOutput = createFileOutput(jsonContent, 'json', {
@@ -498,8 +679,8 @@ describe('SubtitleConverter', () => {
             timingOffset: 500,
             includeSpeaker: true,
             cleanText: true,
-            mergeAdjacent: false
-          }
+            mergeAdjacent: false,
+          },
         })
 
         const srtFileOutput = createFileOutput(srtContent, 'srt', {
@@ -509,8 +690,8 @@ describe('SubtitleConverter', () => {
             timingOffset: 500,
             includeSpeaker: true,
             cleanText: true,
-            mergeAdjacent: false
-          }
+            mergeAdjacent: false,
+          },
         })
 
         const vttFileOutput = createFileOutput(vttContent, 'vtt', {
@@ -520,8 +701,8 @@ describe('SubtitleConverter', () => {
             timingOffset: 500,
             includeSpeaker: true,
             cleanText: true,
-            mergeAdjacent: false
-          }
+            mergeAdjacent: false,
+          },
         })
 
         const textFileOutput = createFileOutput(textContent, 'plain-text', {
@@ -531,8 +712,8 @@ describe('SubtitleConverter', () => {
             timingOffset: 500,
             includeSpeaker: true,
             cleanText: true,
-            mergeAdjacent: false
-          }
+            mergeAdjacent: false,
+          },
         })
 
         // Print all file outputs
@@ -546,9 +727,13 @@ describe('SubtitleConverter', () => {
         console.log(textFileOutput)
 
         // Verify the file outputs contain the expected content
-        expect(jsonFileOutput).toContain('# Subtitle File Generated by SubtitleConverter')
+        expect(jsonFileOutput).toContain(
+          '# Subtitle File Generated by SubtitleConverter',
+        )
         expect(jsonFileOutput).toContain('# Format: JSON')
-        expect(jsonFileOutput).toContain('"text": "[Speaker 1]: Welcome to our presentation"')
+        expect(jsonFileOutput).toContain(
+          '"text": "[Speaker 1]: Welcome to our presentation"',
+        )
 
         expect(srtFileOutput).toContain('# Format: SRT')
         expect(srtFileOutput).toContain('1\n')
@@ -559,7 +744,9 @@ describe('SubtitleConverter', () => {
         expect(vttFileOutput).toContain('00:00:00.500 --> 00:00:03.500')
 
         expect(textFileOutput).toContain('# Format: PLAIN-TEXT')
-        expect(textFileOutput).toContain('[Speaker 1]: Welcome to our presentation')
+        expect(textFileOutput).toContain(
+          '[Speaker 1]: Welcome to our presentation',
+        )
         // Check that the actual subtitle content doesn't contain timing (only the header metadata does)
         expect(textContent).not.toMatch(/\d{2}:\d{2}:\d{2}/) // No timing in plain text content
         expect(textContent).not.toMatch(/-->/)
@@ -568,31 +755,53 @@ describe('SubtitleConverter', () => {
         console.log(`JSON file size: ${new Blob([jsonFileOutput]).size} bytes`)
         console.log(`SRT file size: ${new Blob([srtFileOutput]).size} bytes`)
         console.log(`VTT file size: ${new Blob([vttFileOutput]).size} bytes`)
-        console.log(`Plain text file size: ${new Blob([textFileOutput]).size} bytes`)
-      })
+        console.log(
+          `Plain text file size: ${new Blob([textFileOutput]).size} bytes`,
+        )
+      }),
     )
 
     it.effect('should demonstrate pipe output to file string function', () =>
       E.gen(function* () {
         // Create a complex subtitle dataset
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         // Function that takes pipe output and returns formatted file string
         const pipeOutputToFileString = (
-          pipeResult: any, 
+          pipeResult: any,
           format: 'json' | 'srt' | 'vtt' | 'plain-text',
-          filename?: string
+          filename?: string,
         ) => {
           const timestamp = new Date().toISOString()
           const fileExtension = format === 'plain-text' ? 'txt' : format
           const defaultFilename = `subtitles_${timestamp.replace(/[:.]/g, '-')}.${fileExtension}`
-          
+
           const header = [
             `# Subtitle File: ${filename || defaultFilename}`,
             `# Format: ${format.toUpperCase()}`,
@@ -613,54 +822,87 @@ describe('SubtitleConverter', () => {
         }
 
         // Simulate pipe output (this could be the result of a complex pipeline)
-        const pipeOutput = yield* E.succeed(complexSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => processSubtitles(subtitles, {
+        const pipeOutput = yield* E.succeed(complexSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            processSubtitles(subtitles, {
               timingOffset: 1000,
               includeSpeaker: true,
               cleanText: true,
               mergeAdjacent: false, // Disable merging to get individual subtitles
-              mergeThreshold: 2000
-            })),
-            E.flatMap((processed) => SubtitleConverterLive.convert(processed, 'srt')),
-            E.map((srtContent) => pipeOutputToFileString(srtContent, 'srt', 'presentation_subtitles.srt'))
-          )
+              mergeThreshold: 2000,
+            }),
+          ),
+          E.flatMap((processed) =>
+            SubtitleConverterLive.convert(processed, 'srt'),
+          ),
+          E.map((srtContent) =>
+            pipeOutputToFileString(
+              srtContent,
+              'srt',
+              'presentation_subtitles.srt',
+            ),
+          ),
+        )
 
         console.log('\n=== Pipe Output to File String ===')
         console.log(pipeOutput)
 
         // Verify the pipe output contains the expected content
-        expect(pipeOutput).toContain('# Subtitle File: presentation_subtitles.srt')
+        expect(pipeOutput).toContain(
+          '# Subtitle File: presentation_subtitles.srt',
+        )
         expect(pipeOutput).toContain('# Format: SRT')
         expect(pipeOutput).toContain('1\n')
         expect(pipeOutput).toContain('00:00:01,000 --> 00:00:04,000')
         expect(pipeOutput).toContain('[Speaker 1]: Welcome to our presentation')
 
-        console.log(`\nPipe output file size: ${new Blob([pipeOutput]).size} bytes`)
-      })
+        console.log(
+          `\nPipe output file size: ${new Blob([pipeOutput]).size} bytes`,
+        )
+      }),
     )
 
     it.effect('should demonstrate pipeable text replacement function', () =>
       E.gen(function* () {
         // Create a complex subtitle dataset
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         // Function that takes pipe output and returns formatted file string
         const pipeOutputToFileString = (
-          pipeResult: any, 
+          pipeResult: any,
           format: 'json' | 'srt' | 'vtt' | 'plain-text',
-          filename?: string
+          filename?: string,
         ) => {
           const timestamp = new Date().toISOString()
           const fileExtension = format === 'plain-text' ? 'txt' : format
           const defaultFilename = `subtitles_${timestamp.replace(/[:.]/g, '-')}.${fileExtension}`
-          
+
           const header = [
             `# Subtitle File: ${filename || defaultFilename}`,
             `# Format: ${format.toUpperCase()}`,
@@ -681,35 +923,48 @@ describe('SubtitleConverter', () => {
         }
 
         // Proper streaming pipeline: process single items, collect at end
-        const pipeOutput = yield* E.succeed(complexSubtitles)
-          .pipe(
-            // Step 1: Process subtitles with basic options
-            E.flatMap((subtitles) => processSubtitles(subtitles, {
+        const pipeOutput = yield* E.succeed(complexSubtitles).pipe(
+          // Step 1: Process subtitles with basic options
+          E.flatMap((subtitles) =>
+            processSubtitles(subtitles, {
               timingOffset: 500,
               includeSpeaker: true,
               cleanText: true,
               mergeAdjacent: false,
-            })),
-            // Step 2: Apply single-item filters efficiently
-            E.map((processedSubtitles) => 
-              applyFiltersToArray(
-                processedSubtitles,
-                replaceText('Hello world!')
-              )
+            }),
+          ),
+          // Step 2: Apply single-item filters efficiently
+          E.map((processedSubtitles) =>
+            applyFiltersToArray(
+              processedSubtitles,
+              replaceText('Hello world!'),
             ),
-            // Step 3: Convert to SRT format
-            E.flatMap((processed) => SubtitleConverterLive.convert(processed, 'srt')),
-            // Step 4: Format as file output
-            E.map((srtContent) => pipeOutputToFileString(srtContent, 'srt', 'hello_world_subtitles.srt'))
-          )
+          ),
+          // Step 3: Convert to SRT format
+          E.flatMap((processed) =>
+            SubtitleConverterLive.convert(processed, 'srt'),
+          ),
+          // Step 4: Format as file output
+          E.map((srtContent) =>
+            pipeOutputToFileString(
+              srtContent,
+              'srt',
+              'hello_world_subtitles.srt',
+            ),
+          ),
+        )
 
         console.log('\n=== Pipe Output with Text Replacement ===')
         console.log(pipeOutput)
 
         // Verify the pipe output contains the expected content
-        expect(pipeOutput).toContain('# Subtitle File: hello_world_subtitles.srt')
+        expect(pipeOutput).toContain(
+          '# Subtitle File: hello_world_subtitles.srt',
+        )
         expect(pipeOutput).toContain('# Format: SRT')
-        expect(pipeOutput).toContain('# Source: SubtitleConverter Pipeline with Text Replacement')
+        expect(pipeOutput).toContain(
+          '# Source: SubtitleConverter Pipeline with Text Replacement',
+        )
         expect(pipeOutput).toContain('1\n')
         expect(pipeOutput).toContain('00:00:00,500 --> 00:00:03,500')
         expect(pipeOutput).toContain('[Speaker 1]: Hello world!')
@@ -729,102 +984,154 @@ describe('SubtitleConverter', () => {
 
         // Verify that all subtitles now contain "Hello world!"
         const lines = pipeOutput.split('\n')
-        const subtitleLines = lines.filter(line => line.includes('Hello world!'))
+        const subtitleLines = lines.filter((line) =>
+          line.includes('Hello world!'),
+        )
         expect(subtitleLines).toHaveLength(5) // All 5 subtitles should have "Hello world!"
 
-        console.log(`\nPipe output with text replacement file size: ${new Blob([pipeOutput]).size} bytes`)
-        console.log(`All ${subtitleLines.length} subtitles now contain "Hello world!"`)
-      })
+        console.log(
+          `\nPipe output with text replacement file size: ${new Blob([pipeOutput]).size} bytes`,
+        )
+        console.log(
+          `All ${subtitleLines.length} subtitles now contain "Hello world!"`,
+        )
+      }),
     )
 
     it.effect('should demonstrate multiple pipe functions in sequence', () =>
       E.gen(function* () {
         // Create a complex subtitle dataset
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         // Proper streaming pipeline: apply single-item filters to each subtitle
-        const pipeOutput = yield* E.succeed(complexSubtitles)
-          .pipe(
-            // Step 1: Basic processing
-            E.flatMap((subtitles) => processSubtitles(subtitles, {
+        const pipeOutput = yield* E.succeed(complexSubtitles).pipe(
+          // Step 1: Basic processing
+          E.flatMap((subtitles) =>
+            processSubtitles(subtitles, {
               includeSpeaker: true,
               cleanText: true,
               mergeAdjacent: false,
-            })),
-            // Step 2: Apply single-item filters efficiently
-            E.map((processedSubtitles) => 
-              applyFiltersToArray(
-                processedSubtitles,
-                replaceText('Hello world!'),
-                addTimingOffset(1000),
-                filterBySpeaker(1),
-                addPrefix('[CUSTOM]')
-              )
+            }),
+          ),
+          // Step 2: Apply single-item filters efficiently
+          E.map((processedSubtitles) =>
+            applyFiltersToArray(
+              processedSubtitles,
+              replaceText('Hello world!'),
+              addTimingOffset(1000),
+              filterBySpeaker(1),
+              addPrefix('[CUSTOM]'),
             ),
-            // Step 3: Convert to JSON format
-            E.flatMap((processed) => SubtitleConverterLive.convert(processed, 'json')),
-            // Step 4: Parse and verify the result
-            E.map((jsonContent) => {
-              const parsed = JSON.parse(jsonContent)
-              console.log('\n=== Multi-Pipe Output ===')
-              console.log('JSON Result:', jsonContent)
-              console.log('Parsed Result:', parsed)
-              
-              // Verify the pipeline worked correctly
-              expect(parsed).toHaveLength(3) // Only speaker 1 subtitles
-              expect(parsed[0].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
-              expect(parsed[0].start).toBe(1000) // Original 0 + 1000 offset
-              expect(parsed[0].end).toBe(4000)   // Original 3000 + 1000 offset
-              expect(parsed[1].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
-              expect(parsed[2].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
-              
-              return `Pipeline processed ${parsed.length} subtitles successfully!`
-            })
-          )
+          ),
+          // Step 3: Convert to JSON format
+          E.flatMap((processed) =>
+            SubtitleConverterLive.convert(processed, 'json'),
+          ),
+          // Step 4: Parse and verify the result
+          E.map((jsonContent) => {
+            const parsed = JSON.parse(jsonContent)
+            console.log('\n=== Multi-Pipe Output ===')
+            console.log('JSON Result:', jsonContent)
+            console.log('Parsed Result:', parsed)
+
+            // Verify the pipeline worked correctly
+            expect(parsed).toHaveLength(3) // Only speaker 1 subtitles
+            expect(parsed[0].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
+            expect(parsed[0].start).toBe(1000) // Original 0 + 1000 offset
+            expect(parsed[0].end).toBe(4000) // Original 3000 + 1000 offset
+            expect(parsed[1].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
+            expect(parsed[2].text).toBe('[CUSTOM] [Speaker 1]: Hello world!')
+
+            return `Pipeline processed ${parsed.length} subtitles successfully!`
+          }),
+        )
 
         console.log('\n=== Pipeline Summary ===')
         console.log(pipeOutput)
         console.log('All pipe functions executed successfully in sequence!')
-      })
+      }),
     )
 
     it.effect('should demonstrate composed filters and debug functions', () =>
       E.gen(function* () {
         // Create a complex subtitle dataset
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
         // Execute the pipeline with single-item filters applied to each subtitle
-        const result = yield* E.succeed(complexSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => processSubtitles(subtitles, {
+        const result = yield* E.succeed(complexSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            processSubtitles(subtitles, {
               includeSpeaker: true,
               cleanText: true,
               mergeAdjacent: false,
-            })),
-            // Apply single-item filters efficiently
-            E.map((processedSubtitles) => 
-              applyFiltersToArray(
-                processedSubtitles,
-                replaceText('Hello world!'),
-                addTimingOffset(500),
-                filterBySpeaker(1),
-                addPrefix('[COMPOSED]')
-              )
+            }),
+          ),
+          // Apply single-item filters efficiently
+          E.map((processedSubtitles) =>
+            applyFiltersToArray(
+              processedSubtitles,
+              replaceText('Hello world!'),
+              addTimingOffset(500),
+              filterBySpeaker(1),
+              addPrefix('[COMPOSED]'),
             ),
-            E.flatMap((processed) => SubtitleConverterLive.convert(processed, 'json'))
-          )
+          ),
+          E.flatMap((processed) =>
+            SubtitleConverterLive.convert(processed, 'json'),
+          ),
+        )
 
         console.log('\n=== Composed Pipeline Output ===')
         console.log(result)
@@ -834,27 +1141,35 @@ describe('SubtitleConverter', () => {
         expect(parsed).toHaveLength(3) // Only speaker 1 subtitles
         expect(parsed[0].text).toBe('[COMPOSED] [Speaker 1]: Hello world!')
         expect(parsed[0].start).toBe(500) // Original 0 + 500 offset
-        expect(parsed[0].end).toBe(3500)  // Original 3000 + 500 offset
+        expect(parsed[0].end).toBe(3500) // Original 3000 + 500 offset
 
         console.log('Composed pipeline executed successfully!')
-        console.log(`Processed ${parsed.length} subtitles through composed filters`)
-      })
+        console.log(
+          `Processed ${parsed.length} subtitles through composed filters`,
+        )
+      }),
     )
   })
 
   describe('SubtitleConverterLive.convert', () => {
     it.effect('should convert to JSON format', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'json')
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'json',
+        )
         const parsed = JSON.parse(result)
         expect(parsed).toEqual(sampleSubtitles)
-      })
+      }),
     )
 
     it.effect('should convert to SRT format', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'srt')
-        
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'srt',
+        )
+
         expect(result).toContain('1\n')
         expect(result).toContain('00:00:00,000 --> 00:00:05,000\n')
         expect(result).toContain('Hello world\n')
@@ -864,13 +1179,16 @@ describe('SubtitleConverter', () => {
         expect(result).toContain('3\n')
         expect(result).toContain('00:00:10,000 --> 00:00:15,000\n')
         expect(result).toContain('Subtitle processing\n')
-      })
+      }),
     )
 
     it.effect('should convert to VTT format', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'vtt')
-        
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'vtt',
+        )
+
         expect(result).toContain('WEBVTT\n')
         expect(result).toContain('00:00:00.000 --> 00:00:05.000\n')
         expect(result).toContain('Hello world\n')
@@ -878,37 +1196,49 @@ describe('SubtitleConverter', () => {
         expect(result).toContain('This is a test\n')
         expect(result).toContain('00:00:10.000 --> 00:00:15.000\n')
         expect(result).toContain('Subtitle processing\n')
-      })
+      }),
     )
 
     it.effect('should convert to plain text format', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'plain-text')
-        expect(result).toBe('Hello world\n\nThis is a test\n\nSubtitle processing')
-      })
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'plain-text',
+        )
+        expect(result).toBe(
+          'Hello world\n\nThis is a test\n\nSubtitle processing',
+        )
+      }),
     )
 
     it.effect('should reject unsupported format', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'unsupported' as any)
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'unsupported' as any,
+        )
         expect(result).toBeInstanceOf(UnsupportedFormatError)
-      }).pipe(E.catchAll(E.succeed))
+      }).pipe(E.catchAll(E.succeed)),
     )
 
     it.effect('should convert with processing options', () =>
       E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convert(sampleSubtitles, 'srt', {
-          timingOffset: 1000,
-          includeSpeaker: true,
-        })
-        
+        const result = yield* SubtitleConverterLive.convert(
+          sampleSubtitles,
+          'srt',
+          {
+            timingOffset: 1000,
+            includeSpeaker: true,
+          },
+        )
+
         expect(result).toContain('00:00:01,000 --> 00:00:06,000\n')
         expect(result).toContain('Hello world\n')
         expect(result).toContain('00:00:06,000 --> 00:00:11,000\n')
         expect(result).toContain('This is a test\n')
         expect(result).toContain('00:00:11,000 --> 00:00:16,000\n')
         expect(result).toContain('[Speaker 1]: Subtitle processing\n')
-      })
+      }),
     )
   })
 
@@ -917,54 +1247,66 @@ describe('SubtitleConverter', () => {
       E.gen(function* () {
         const result = yield* SubtitleConverterLive.convertMultiple(
           sampleSubtitles,
-          ['json', 'srt', 'vtt', 'plain-text']
+          ['json', 'srt', 'vtt', 'plain-text'],
         )
 
         expect(result.results).toHaveLength(4)
-        
-        const jsonResult = result.results.find(r => r.format === 'json')
+
+        const jsonResult = result.results.find((r) => r.format === 'json')
         expect(jsonResult).toBeDefined()
         expect(JSON.parse(jsonResult!.content)).toEqual(sampleSubtitles)
-        
-        const srtResult = result.results.find(r => r.format === 'srt')
+
+        const srtResult = result.results.find((r) => r.format === 'srt')
         expect(srtResult).toBeDefined()
         expect(srtResult!.content).toContain('1\n')
         expect(srtResult!.content).toContain('Hello world\n')
-        
-        const vttResult = result.results.find(r => r.format === 'vtt')
+
+        const vttResult = result.results.find((r) => r.format === 'vtt')
         expect(vttResult).toBeDefined()
         expect(vttResult!.content).toContain('WEBVTT\n')
         expect(vttResult!.content).toContain('Hello world\n')
-        
-        const textResult = result.results.find(r => r.format === 'plain-text')
+
+        const textResult = result.results.find((r) => r.format === 'plain-text')
         expect(textResult).toBeDefined()
-        expect(textResult!.content).toBe('Hello world\n\nThis is a test\n\nSubtitle processing')
-      })
+        expect(textResult!.content).toBe(
+          'Hello world\n\nThis is a test\n\nSubtitle processing',
+        )
+      }),
     )
 
-    it.effect('should convert to multiple formats with processing options', () =>
-      E.gen(function* () {
-        const result = yield* SubtitleConverterLive.convertMultiple(
-          sampleSubtitles,
-          ['srt', 'vtt'],
-          {
-            timingOffset: 1000,
-            includeSpeaker: true,
-          }
-        )
+    it.effect(
+      'should convert to multiple formats with processing options',
+      () =>
+        E.gen(function* () {
+          const result = yield* SubtitleConverterLive.convertMultiple(
+            sampleSubtitles,
+            ['srt', 'vtt'],
+            {
+              timingOffset: 1000,
+              includeSpeaker: true,
+            },
+          )
 
-        expect(result.results).toHaveLength(2)
-        
-        const srtResult = result.results.find(r => r.format === 'srt')
-        expect(srtResult).toBeDefined()
-        expect(srtResult!.content).toContain('00:00:01,000 --> 00:00:06,000\n')
-        expect(srtResult!.content).toContain('[Speaker 1]: Subtitle processing\n')
-        
-        const vttResult = result.results.find(r => r.format === 'vtt')
-        expect(vttResult).toBeDefined()
-        expect(vttResult!.content).toContain('00:00:01.000 --> 00:00:06.000\n')
-        expect(vttResult!.content).toContain('[Speaker 1]: Subtitle processing\n')
-      })
+          expect(result.results).toHaveLength(2)
+
+          const srtResult = result.results.find((r) => r.format === 'srt')
+          expect(srtResult).toBeDefined()
+          expect(srtResult!.content).toContain(
+            '00:00:01,000 --> 00:00:06,000\n',
+          )
+          expect(srtResult!.content).toContain(
+            '[Speaker 1]: Subtitle processing\n',
+          )
+
+          const vttResult = result.results.find((r) => r.format === 'vtt')
+          expect(vttResult).toBeDefined()
+          expect(vttResult!.content).toContain(
+            '00:00:01.000 --> 00:00:06.000\n',
+          )
+          expect(vttResult!.content).toContain(
+            '[Speaker 1]: Subtitle processing\n',
+          )
+        }),
     )
   })
 
@@ -982,7 +1324,7 @@ describe('SubtitleConverter', () => {
 
         expect(result).toHaveLength(1) // Empty text should be filtered out
         expect(result[0]?.text).toBe('Valid text')
-      })
+      }),
     )
 
     it.effect('should handle negative timing offset', () =>
@@ -996,7 +1338,7 @@ describe('SubtitleConverter', () => {
         expect(result[0]?.end).toBe(3000)
         expect(result[1]?.start).toBe(3000)
         expect(result[1]?.end).toBe(8000)
-      })
+      }),
     )
 
     it.effect('should handle speaker info with undefined speaker', () =>
@@ -1013,7 +1355,7 @@ describe('SubtitleConverter', () => {
         expect(result).toHaveLength(2)
         expect(result[0]?.text).toBe('Hello world') // No speaker prefix
         expect(result[1]?.text).toBe('This is a test') // No speaker prefix
-      })
+      }),
     )
 
     it.effect('should handle merging with different speakers', () =>
@@ -1031,104 +1373,121 @@ describe('SubtitleConverter', () => {
         expect(result).toHaveLength(1)
         expect(result[0]?.text).toBe('Hello world')
         expect(result[0]?.speaker).toBeUndefined() // Should be undefined when speakers differ
-      })
+      }),
     )
   })
 
   describe('Effect Pipes Integration', () => {
     it.effect('should work with pipe operations', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.tap((subtitles) => E.sync(() => expect(subtitles).toHaveLength(3))),
-            E.flatMap((subtitles) => SubtitleConverterLive.convert(subtitles, 'json')),
-            E.map((json) => JSON.parse(json)),
-            E.tap((parsed) => E.sync(() => expect(parsed).toEqual(sampleSubtitles)))
-          )
-        
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.tap((subtitles) => E.sync(() => expect(subtitles).toHaveLength(3))),
+          E.flatMap((subtitles) =>
+            SubtitleConverterLive.convert(subtitles, 'json'),
+          ),
+          E.map((json) => JSON.parse(json)),
+          E.tap((parsed) =>
+            E.sync(() => expect(parsed).toEqual(sampleSubtitles)),
+          ),
+        )
+
         expect(result).toEqual(sampleSubtitles)
-      })
+      }),
     )
 
     it.effect('should handle errors in pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(invalidSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => SubtitleConverterLive.convert(subtitles as any, 'json')),
-            E.catchAll((error) => E.succeed(error))
-          )
-        
+        const result = yield* E.succeed(invalidSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            SubtitleConverterLive.convert(subtitles as any, 'json'),
+          ),
+          E.catchAll((error) => E.succeed(error)),
+        )
+
         // The first validation error will be InvalidTimingError for negative start time
         expect(result).toBeInstanceOf(InvalidTimingError)
-      })
+      }),
     )
 
     it.effect('should chain multiple operations with pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.tap(() => E.sync(() => console.log('Starting conversion'))),
-            E.flatMap((subtitles) => SubtitleConverterLive.convert(subtitles, 'srt')),
-            E.tap((srt) => E.sync(() => expect(srt).toContain('Hello world'))),
-            E.flatMap(() => SubtitleConverterLive.convert(sampleSubtitles, 'vtt')),
-            E.tap((vtt) => E.sync(() => expect(vtt).toContain('WEBVTT'))),
-            E.flatMap(() => SubtitleConverterLive.convert(sampleSubtitles, 'plain-text')),
-            E.map((text) => text.split('\n').length)
-          )
-        
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.tap(() => E.sync(() => console.log('Starting conversion'))),
+          E.flatMap((subtitles) =>
+            SubtitleConverterLive.convert(subtitles, 'srt'),
+          ),
+          E.tap((srt) => E.sync(() => expect(srt).toContain('Hello world'))),
+          E.flatMap(() =>
+            SubtitleConverterLive.convert(sampleSubtitles, 'vtt'),
+          ),
+          E.tap((vtt) => E.sync(() => expect(vtt).toContain('WEBVTT'))),
+          E.flatMap(() =>
+            SubtitleConverterLive.convert(sampleSubtitles, 'plain-text'),
+          ),
+          E.map((text) => text.split('\n').length),
+        )
+
         expect(result).toBe(5) // 3 subtitles + 2 empty lines
-      })
+      }),
     )
 
     it.effect('should work with processing options in pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => 
-              SubtitleConverterLive.convert(subtitles, 'srt', {
-                timingOffset: 1000,
-                includeSpeaker: true,
-                cleanText: true
-              })
-            ),
-            E.tap((srt) => E.sync(() => {
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            SubtitleConverterLive.convert(subtitles, 'srt', {
+              timingOffset: 1000,
+              includeSpeaker: true,
+              cleanText: true,
+            }),
+          ),
+          E.tap((srt) =>
+            E.sync(() => {
               expect(srt).toContain('00:00:01,000 --> 00:00:06,000')
               expect(srt).toContain('[Speaker 1]: Subtitle processing')
-            }))
-          )
-        
+            }),
+          ),
+        )
+
         expect(result).toContain('Hello world')
-      })
+      }),
     )
 
     it.effect('should handle multiple format conversion with pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => 
-              SubtitleConverterLive.convertMultiple(subtitles, ['json', 'srt', 'vtt'])
-            ),
-            E.map((multiResult) => multiResult.results.map(r => r.format)),
-            E.tap((formats) => E.sync(() => expect(formats).toContain('json')))
-          )
-        
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            SubtitleConverterLive.convertMultiple(subtitles, [
+              'json',
+              'srt',
+              'vtt',
+            ]),
+          ),
+          E.map((multiResult) => multiResult.results.map((r) => r.format)),
+          E.tap((formats) => E.sync(() => expect(formats).toContain('json'))),
+        )
+
         expect(result).toEqual(['json', 'srt', 'vtt'])
-      })
+      }),
     )
 
     it.effect('should work with error recovery in pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.flatMap(() => SubtitleConverterLive.convert(sampleSubtitles, 'unsupported' as any)),
-            E.catchAll((error) => {
-              expect(error).toBeInstanceOf(UnsupportedFormatError)
-              return E.succeed('recovered')
-            })
-          )
-        
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.flatMap(() =>
+            SubtitleConverterLive.convert(
+              sampleSubtitles,
+              'unsupported' as any,
+            ),
+          ),
+          E.catchAll((error) => {
+            expect(error).toBeInstanceOf(UnsupportedFormatError)
+            return E.succeed('recovered')
+          }),
+        )
+
         expect(result).toBe('recovered')
-      })
+      }),
     )
   })
 
@@ -1140,19 +1499,31 @@ describe('SubtitleConverter', () => {
       ]
 
       // Print before any filters
-      console.log('\n[DEBUG] Original subtitles:', JSON.stringify(originalSubtitles, null, 2))
+      console.log(
+        '\n[DEBUG] Original subtitles:',
+        JSON.stringify(originalSubtitles, null, 2),
+      )
 
       // Apply addTimingOffset
       const offsetSubtitles = originalSubtitles.map(addTimingOffset(1000))
-      console.log('[DEBUG] After addTimingOffset(+1000):', JSON.stringify(offsetSubtitles, null, 2))
+      console.log(
+        '[DEBUG] After addTimingOffset(+1000):',
+        JSON.stringify(offsetSubtitles, null, 2),
+      )
 
       // Apply replaceText
       const replacedSubtitles = offsetSubtitles.map(replaceText('Replaced!'))
-      console.log('[DEBUG] After replaceText("Replaced!"):', JSON.stringify(replacedSubtitles, null, 2))
+      console.log(
+        '[DEBUG] After replaceText("Replaced!"):',
+        JSON.stringify(replacedSubtitles, null, 2),
+      )
 
       // Apply addPrefix
       const prefixedSubtitles = replacedSubtitles.map(addPrefix('[PREFIX]'))
-      console.log('[DEBUG] After addPrefix("[PREFIX]"):', JSON.stringify(prefixedSubtitles, null, 2))
+      console.log(
+        '[DEBUG] After addPrefix("[PREFIX]"):',
+        JSON.stringify(prefixedSubtitles, null, 2),
+      )
 
       // Final assertion (just to keep the test green)
       expect(prefixedSubtitles[0]?.text).toBe('[PREFIX] Replaced!')
@@ -1169,165 +1540,233 @@ describe('SubtitleConverter', () => {
         })
 
         // Type guard to check if result has error property
-        const hasError = typeof result === 'object' && result !== null && 'error' in result
+        const hasError =
+          typeof result === 'object' && result !== null && 'error' in result
         expect(hasError).toBe(false)
-        
+
         if (!hasError && Array.isArray(result)) {
           expect(result).toHaveLength(3)
           expect(result[0]?.start).toBe(1000)
           expect(result[0]?.end).toBe(6000)
           expect(result[2]?.text).toBe('[Speaker 1]: Subtitle processing')
         }
-      })
+      }),
     )
 
     it.effect('should convert to format using stream processing', () =>
       E.gen(function* () {
-        const result = yield* runSubtitleConversionStream(sampleSubtitles, 'srt', {
-          timingOffset: 1000,
-          includeSpeaker: true,
-        })
+        const result = yield* runSubtitleConversionStream(
+          sampleSubtitles,
+          'srt',
+          {
+            timingOffset: 1000,
+            includeSpeaker: true,
+          },
+        )
 
         // Type guard to check if result has error property
-        const hasError = typeof result === 'object' && result !== null && 'error' in result
+        const hasError =
+          typeof result === 'object' && result !== null && 'error' in result
         expect(hasError).toBe(false)
-        
+
         if (!hasError && typeof result === 'string') {
           expect(result).toContain('00:00:01,000 --> 00:00:06,000')
           expect(result).toContain('[Speaker 1]: Subtitle processing')
         }
-      })
+      }),
     )
 
     it.effect('should handle errors in stream processing', () =>
       E.gen(function* () {
-        const result = yield* runSubtitleProcessingStream(invalidSubtitles as any, {
-          timingOffset: 1000,
-        })
+        const result = yield* runSubtitleProcessingStream(
+          invalidSubtitles as any,
+          {
+            timingOffset: 1000,
+          },
+        )
 
         // Type guard to check if result has error property
-        const hasError = typeof result === 'object' && result !== null && 'error' in result
+        const hasError =
+          typeof result === 'object' && result !== null && 'error' in result
         expect(hasError).toBe(true)
-        
-        if (hasError && typeof result === 'object' && result !== null && 'error' in result) {
+
+        if (
+          hasError &&
+          typeof result === 'object' &&
+          result !== null &&
+          'error' in result
+        ) {
           expect(result.error).toBeInstanceOf(InvalidTimingError)
         }
-      })
+      }),
     )
 
     it.effect('should handle errors in stream conversion', () =>
       E.gen(function* () {
-        const result = yield* runSubtitleConversionStream(invalidSubtitles as any, 'json')
+        const result = yield* runSubtitleConversionStream(
+          invalidSubtitles as any,
+          'json',
+        )
 
         // Type guard to check if result has error property
-        const hasError = typeof result === 'object' && result !== null && 'error' in result
+        const hasError =
+          typeof result === 'object' && result !== null && 'error' in result
         expect(hasError).toBe(true)
-        
-        if (hasError && typeof result === 'object' && result !== null && 'error' in result) {
+
+        if (
+          hasError &&
+          typeof result === 'object' &&
+          result !== null &&
+          'error' in result
+        ) {
           expect(result.error).toBeInstanceOf(InvalidTimingError)
         }
-      })
+      }),
     )
 
     it.effect('should work with stream processing and pipes', () =>
       E.gen(function* () {
-        const result = yield* E.succeed(sampleSubtitles)
-          .pipe(
-            E.flatMap((subtitles) => runSubtitleProcessingStream(subtitles, {
+        const result = yield* E.succeed(sampleSubtitles).pipe(
+          E.flatMap((subtitles) =>
+            runSubtitleProcessingStream(subtitles, {
               timingOffset: 1000,
-              cleanText: true
-            })),
-            E.map((processed) => {
-              const hasError = typeof processed === 'object' && processed !== null && 'error' in processed
-              if (hasError && typeof processed === 'object' && processed !== null && 'error' in processed) {
-                throw processed.error
-              }
-              return processed
+              cleanText: true,
             }),
-            E.map((processed) => Array.isArray(processed) ? processed.length : 0),
-            E.catchAll((error) => E.succeed({ error }))
-          )
+          ),
+          E.map((processed) => {
+            const hasError =
+              typeof processed === 'object' &&
+              processed !== null &&
+              'error' in processed
+            if (
+              hasError &&
+              typeof processed === 'object' &&
+              processed !== null &&
+              'error' in processed
+            ) {
+              throw processed.error
+            }
+            return processed
+          }),
+          E.map((processed) =>
+            Array.isArray(processed) ? processed.length : 0,
+          ),
+          E.catchAll((error) => E.succeed({ error })),
+        )
 
         // Type guard to check if result has error property
-        const hasError = typeof result === 'object' && result !== null && 'error' in result
+        const hasError =
+          typeof result === 'object' && result !== null && 'error' in result
         expect(hasError).toBe(false)
-        
+
         if (!hasError && typeof result === 'number') {
           expect(result).toBe(3)
         }
-      })
+      }),
     )
 
     it.effect('should save subtitle content to file using Bun FS', () =>
       E.gen(function* () {
         const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
+          {
+            start: 0,
+            end: 3000,
+            text: 'Welcome to our presentation',
+            speaker: 1,
+          },
           { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
+          {
+            start: 6000,
+            end: 9000,
+            text: 'the future of technology',
+            speaker: 2,
+          },
+          {
+            start: 9000,
+            end: 12000,
+            text: 'and its impact on society',
+            speaker: 2,
+          },
+          {
+            start: 12000,
+            end: 15000,
+            text: 'Thank you for your attention',
+            speaker: 1,
+          },
         ]
 
-        const srtContent = yield* SubtitleConverterLive.convert(complexSubtitles, 'srt', {
-          timingOffset: 500,
-          includeSpeaker: true,
-          cleanText: true,
-        })
+        const srtContent = yield* SubtitleConverterLive.convert(
+          complexSubtitles,
+          'srt',
+          {
+            timingOffset: 500,
+            includeSpeaker: true,
+            cleanText: true,
+          },
+        )
 
-        const jsonContent = yield* SubtitleConverterLive.convert(complexSubtitles, 'json', {
-          timingOffset: 500,
-          includeSpeaker: true,
-          cleanText: true,
-        })
+        const jsonContent = yield* SubtitleConverterLive.convert(
+          complexSubtitles,
+          'json',
+          {
+            timingOffset: 500,
+            includeSpeaker: true,
+            cleanText: true,
+          },
+        )
 
-        const vttContent = yield* SubtitleConverterLive.convert(complexSubtitles, 'vtt', {
-          timingOffset: 500,
-          includeSpeaker: true,
-          cleanText: true,
-        })
+        const vttContent = yield* SubtitleConverterLive.convert(
+          complexSubtitles,
+          'vtt',
+          {
+            timingOffset: 500,
+            includeSpeaker: true,
+            cleanText: true,
+          },
+        )
 
-        const memoryFS: Record<string, string> = {};
-        const dirs: Set<string> = new Set();
+        const memoryFS: Record<string, string> = {}
+        const dirs: Set<string> = new Set()
         const fsMock = {
           makeDirectory: (path: string, _opts?: any) => {
-            dirs.add(path);
-            return E.succeed(undefined);
+            dirs.add(path)
+            return E.succeed(undefined)
           },
           writeFileString: (path: string, content: string) => {
-            memoryFS[path] = content;
-            return E.succeed(undefined);
+            memoryFS[path] = content
+            return E.succeed(undefined)
           },
           readFileString: (path: string) => {
-            if (memoryFS[path] !== undefined) return E.succeed(memoryFS[path]);
-            return E.fail(new Error('File not found: ' + path));
+            if (memoryFS[path] !== undefined) return E.succeed(memoryFS[path])
+            return E.fail(new Error('File not found: ' + path))
           },
           remove: (path: string, opts?: { recursive?: boolean }) => {
             if (dirs.has(path) && opts?.recursive) {
               // Remove all files in this "directory"
               Object.keys(memoryFS).forEach((file) => {
-                if (file.startsWith(path + '/')) delete memoryFS[file];
-              });
-              dirs.delete(path);
+                if (file.startsWith(path + '/')) delete memoryFS[file]
+              })
+              dirs.delete(path)
             } else if (memoryFS[path] !== undefined) {
-              delete memoryFS[path];
+              delete memoryFS[path]
             } else {
               // ignore if not found
             }
-            return E.succeed(undefined);
+            return E.succeed(undefined)
           },
-        };
-        const fs = fsMock;
-        const testDir = `/tmp/subtitle-test-${Date.now()}`;
+        }
+        const fs = fsMock
+        const testDir = `/tmp/subtitle-test-${Date.now()}`
 
         // Create test directory and write files
-        yield* fs.makeDirectory(testDir, { recursive: true });
-        yield* fs.writeFileString(`${testDir}/test.srt`, srtContent);
-        yield* fs.writeFileString(`${testDir}/test.json`, jsonContent);
-        yield* fs.writeFileString(`${testDir}/test.vtt`, vttContent);
+        yield* fs.makeDirectory(testDir, { recursive: true })
+        yield* fs.writeFileString(`${testDir}/test.srt`, srtContent)
+        yield* fs.writeFileString(`${testDir}/test.json`, jsonContent)
+        yield* fs.writeFileString(`${testDir}/test.vtt`, vttContent)
 
-        const srtResult = yield* fs.readFileString(`${testDir}/test.srt`);
-        const jsonResult = yield* fs.readFileString(`${testDir}/test.json`);
-        const vttResult = yield* fs.readFileString(`${testDir}/test.vtt`);
+        const srtResult = yield* fs.readFileString(`${testDir}/test.srt`)
+        const jsonResult = yield* fs.readFileString(`${testDir}/test.json`)
+        const vttResult = yield* fs.readFileString(`${testDir}/test.vtt`)
 
         expect(srtResult).toContain('1\n')
         expect(srtResult).toContain('00:00:00,500 --> 00:00:03,500')
@@ -1341,7 +1780,9 @@ describe('SubtitleConverter', () => {
 
         const parsedJson = JSON.parse(jsonResult)
         expect(parsedJson).toHaveLength(5)
-        expect(parsedJson[0].text).toBe('[Speaker 1]: Welcome to our presentation')
+        expect(parsedJson[0].text).toBe(
+          '[Speaker 1]: Welcome to our presentation',
+        )
         expect(parsedJson[0].start).toBe(500)
         expect(parsedJson[0].end).toBe(3500)
         expect(parsedJson[2].text).toBe('[Speaker 2]: the future of technology')
@@ -1353,10 +1794,10 @@ describe('SubtitleConverter', () => {
         expect(vttResult).toContain('00:00:06.500 --> 00:00:09.500')
         expect(vttResult).toContain('[Speaker 2]: the future of technology')
 
-        yield* fs.remove(`${testDir}/test.srt`);
-        yield* fs.remove(`${testDir}/test.json`);
-        yield* fs.remove(`${testDir}/test.vtt`);
-        yield* fs.remove(testDir, { recursive: true });
+        yield* fs.remove(`${testDir}/test.srt`)
+        yield* fs.remove(`${testDir}/test.json`)
+        yield* fs.remove(`${testDir}/test.vtt`)
+        yield* fs.remove(testDir, { recursive: true })
 
         console.log('\n=== File System Test Results ===')
         console.log(`SRT file size: ${srtResult.length} characters`)
@@ -1369,9 +1810,9 @@ describe('SubtitleConverter', () => {
           srtLines: srtResult.split('\n').length,
           jsonEntries: parsedJson.length,
           vttLines: vttResult.split('\n').length,
-          testDir
+          testDir,
         }
-      })
+      }),
     )
   })
 
@@ -1381,7 +1822,10 @@ describe('SubtitleConverter', () => {
      * @param subtitles Array of SubtitleItem
      * @param filters List of single-item filter functions
      */
-    function* subtitleStreamUnified(subtitles: SubtitleItem[], ...filters: Array<(item: SubtitleItem) => SubtitleItem>): Generator<SubtitleItem, void, unknown> {
+    function* subtitleStreamUnified(
+      subtitles: SubtitleItem[],
+      ...filters: Array<(item: SubtitleItem) => SubtitleItem>
+    ): Generator<SubtitleItem, void, unknown> {
       for (const item of subtitles) {
         let current = item
         for (const filter of filters) {
@@ -1398,14 +1842,34 @@ describe('SubtitleConverter', () => {
         { start: 4000, end: 6000, text: 'Third line', speaker: 1 },
       ]
 
-      const offset = (item: SubtitleItem): SubtitleItem => ({ ...item, start: item.start + 1000, end: item.end + 1000 })
-      const upper = (item: SubtitleItem): SubtitleItem => ({ ...item, text: item.text.toUpperCase() })
-      const prefix = (item: SubtitleItem): SubtitleItem => ({ ...item, text: `[SPEAKER ${item.speaker}] ${item.text}` })
+      const offset = (item: SubtitleItem): SubtitleItem => ({
+        ...item,
+        start: item.start + 1000,
+        end: item.end + 1000,
+      })
+      const upper = (item: SubtitleItem): SubtitleItem => ({
+        ...item,
+        text: item.text.toUpperCase(),
+      })
+      const prefix = (item: SubtitleItem): SubtitleItem => ({
+        ...item,
+        text: `[SPEAKER ${item.speaker}] ${item.text}`,
+      })
 
-      const streamed = Array.from(subtitleStreamUnified(originalSubtitles, offset, upper, prefix)).filter((s): s is SubtitleItem => s !== undefined)
-      const reversed = reverseArray(streamed).filter((s): s is SubtitleItem => s !== undefined)
-      console.log('[DEBUG] Streamed (forward):', streamed.map(s => s.text))
-      console.log('[DEBUG] Reversed after streaming:', reversed.map(s => s.text))
+      const streamed = Array.from(
+        subtitleStreamUnified(originalSubtitles, offset, upper, prefix),
+      ).filter((s): s is SubtitleItem => s !== undefined)
+      const reversed = reverseArray(streamed).filter(
+        (s): s is SubtitleItem => s !== undefined,
+      )
+      console.log(
+        '[DEBUG] Streamed (forward):',
+        streamed.map((s) => s.text),
+      )
+      console.log(
+        '[DEBUG] Reversed after streaming:',
+        reversed.map((s) => s.text),
+      )
 
       expect(streamed.length).toBe(3)
       expect(reversed.length).toBe(3)
@@ -1424,13 +1888,16 @@ describe('SubtitleConverter', () => {
      * @param subtitles Array of SubtitleItem
      * @param filters List of single-item filter functions
      */
-    function* subtitleStreamNormal(subtitles: SubtitleItem[], ...filters: Array<(item: SubtitleItem) => SubtitleItem>): Generator<SubtitleItem, void, unknown> {
+    function* subtitleStreamNormal(
+      subtitles: SubtitleItem[],
+      ...filters: Array<(item: SubtitleItem) => SubtitleItem>
+    ): Generator<SubtitleItem, void, unknown> {
       for (let i = 0; i < subtitles.length; i++) {
-        let current: SubtitleItem = subtitles[i] as SubtitleItem;
+        let current: SubtitleItem = subtitles[i] as SubtitleItem
         for (const filter of filters) {
-          current = filter(current);
+          current = filter(current)
         }
-        yield current;
+        yield current
       }
     }
 
@@ -1444,10 +1911,20 @@ describe('SubtitleConverter', () => {
       /** Identity filter for demonstration */
       const identity = (item: SubtitleItem) => item
 
-      const streamed = Array.from(subtitleStreamNormal(originalSubtitles, identity)).filter((s): s is SubtitleItem => s !== undefined)
-      const reversed = reverseArray(streamed).filter((s): s is SubtitleItem => s !== undefined)
-      console.log('[DEBUG] Streamed (forward):', streamed.map(s => s.text))
-      console.log('[DEBUG] Reversed after streaming:', reversed.map(s => s.text))
+      const streamed = Array.from(
+        subtitleStreamNormal(originalSubtitles, identity),
+      ).filter((s): s is SubtitleItem => s !== undefined)
+      const reversed = reverseArray(streamed).filter(
+        (s): s is SubtitleItem => s !== undefined,
+      )
+      console.log(
+        '[DEBUG] Streamed (forward):',
+        streamed.map((s) => s.text),
+      )
+      console.log(
+        '[DEBUG] Reversed after streaming:',
+        reversed.map((s) => s.text),
+      )
 
       expect(streamed.length).toBe(3)
       expect(reversed.length).toBe(3)
@@ -1461,72 +1938,102 @@ describe('SubtitleConverter', () => {
   })
 
   describe('Proper streaming pattern with single items', () => {
-    it.effect('should demonstrate proper streaming pattern with single items', () =>
-      E.gen(function* () {
-        // Create a complex subtitle dataset
-        const complexSubtitles: SubtitleItem[] = [
-          { start: 0, end: 3000, text: 'Welcome to our presentation', speaker: 1 },
-          { start: 3000, end: 6000, text: 'Today we will discuss', speaker: 1 },
-          { start: 6000, end: 9000, text: 'the future of technology', speaker: 2 },
-          { start: 9000, end: 12000, text: 'and its impact on society', speaker: 2 },
-          { start: 12000, end: 15000, text: 'Thank you for your attention', speaker: 1 },
-        ]
+    it.effect(
+      'should demonstrate proper streaming pattern with single items',
+      () =>
+        E.gen(function* () {
+          // Create a complex subtitle dataset
+          const complexSubtitles: SubtitleItem[] = [
+            {
+              start: 0,
+              end: 3000,
+              text: 'Welcome to our presentation',
+              speaker: 1,
+            },
+            {
+              start: 3000,
+              end: 6000,
+              text: 'Today we will discuss',
+              speaker: 1,
+            },
+            {
+              start: 6000,
+              end: 9000,
+              text: 'the future of technology',
+              speaker: 2,
+            },
+            {
+              start: 9000,
+              end: 12000,
+              text: 'and its impact on society',
+              speaker: 2,
+            },
+            {
+              start: 12000,
+              end: 15000,
+              text: 'Thank you for your attention',
+              speaker: 1,
+            },
+          ]
 
-        // Demonstrate proper streaming pattern:
-        // 1. Process each subtitle individually through the pipeline
-        // 2. Apply filters to single items, not arrays
-        // 3. Collect results at the end
-        // 4. Reverse order if needed for final output
+          // Demonstrate proper streaming pattern:
+          // 1. Process each subtitle individually through the pipeline
+          // 2. Apply filters to single items, not arrays
+          // 3. Collect results at the end
+          // 4. Reverse order if needed for final output
 
-        const result = yield* E.succeed(complexSubtitles)
-          .pipe(
+          const result = yield* E.succeed(complexSubtitles).pipe(
             // Step 1: Process subtitles with basic options
-            E.flatMap((subtitles) => processSubtitles(subtitles, {
-              timingOffset: 500,
-              includeSpeaker: true,
-              cleanText: true,
-              mergeAdjacent: false,
-            })),
+            E.flatMap((subtitles) =>
+              processSubtitles(subtitles, {
+                timingOffset: 500,
+                includeSpeaker: true,
+                cleanText: true,
+                mergeAdjacent: false,
+              }),
+            ),
             // Step 2: Apply single-item filters efficiently (no array creation per filter)
-            E.map((processedSubtitles) => 
+            E.map((processedSubtitles) =>
               applyFiltersToArray(
                 processedSubtitles,
                 replaceText('Hello world!'),
                 addTimingOffset(1000),
                 filterBySpeaker(1),
-                addPrefix('[STREAM]')
-              )
+                addPrefix('[STREAM]'),
+              ),
             ),
             // Step 3: Convert to JSON format
-            E.flatMap((processed) => SubtitleConverterLive.convert(processed, 'json')),
+            E.flatMap((processed) =>
+              SubtitleConverterLive.convert(processed, 'json'),
+            ),
             // Step 4: Parse and verify the result
             E.map((jsonContent) => {
               const parsed = JSON.parse(jsonContent)
               console.log('\n=== Proper Streaming Pattern Output ===')
               console.log('JSON Result:', jsonContent)
               console.log('Parsed Result:', parsed)
-              
+
               // Verify the pipeline worked correctly
               expect(parsed).toHaveLength(3) // Only speaker 1 subtitles
               expect(parsed[0].text).toBe('[STREAM] [Speaker 1]: Hello world!')
               expect(parsed[0].start).toBe(1500) // Original 0 + 500 + 1000 offset
-              expect(parsed[0].end).toBe(4500)   // Original 3000 + 500 + 1000 offset
+              expect(parsed[0].end).toBe(4500) // Original 3000 + 500 + 1000 offset
               expect(parsed[1].text).toBe('[STREAM] [Speaker 1]: Hello world!')
               expect(parsed[2].text).toBe('[STREAM] [Speaker 1]: Hello world!')
-              
+
               return `Streaming pipeline processed ${parsed.length} subtitles successfully!`
-            })
+            }),
           )
 
-        console.log('\n=== Streaming Pattern Summary ===')
-        console.log(result)
-        console.log('Proper streaming pattern executed successfully!')
-        console.log('Key improvements:')
-        console.log('- No array creation per filter operation')
-        console.log('- Single items processed through pipeline')
-        console.log('- Efficient memory usage')
-        console.log('- Clean separation of concerns')
-      })
+          console.log('\n=== Streaming Pattern Summary ===')
+          console.log(result)
+          console.log('Proper streaming pattern executed successfully!')
+          console.log('Key improvements:')
+          console.log('- No array creation per filter operation')
+          console.log('- Single items processed through pipeline')
+          console.log('- Efficient memory usage')
+          console.log('- Clean separation of concerns')
+        }),
     )
 
     it.effect('should demonstrate streaming with collection and reversal', () =>
@@ -1542,12 +2049,12 @@ describe('SubtitleConverter', () => {
         for (const subtitle of simpleSubtitles) {
           // Process single subtitle through pipeline
           let processed = subtitle
-          
+
           processed = addTimingOffset(500)(processed)
           processed = replaceText('Streamed!')(processed)
           processed = addSpeakerInfo(true)(processed)
           processed = addPrefix('[STREAM]')(processed)
-          
+
           processedSubtitles.push(processed)
         }
 
@@ -1555,7 +2062,7 @@ describe('SubtitleConverter', () => {
         for (let i = 0; i < processedSubtitles.length; i++) {
           const subtitle = processedSubtitles[i]!
           textLines.push(subtitle.text)
-          
+
           if (i < processedSubtitles.length - 1) {
             textLines.push('')
           }
@@ -1564,7 +2071,7 @@ describe('SubtitleConverter', () => {
 
         console.log('\n=== True Single-Item Streaming ===')
         console.log('Original order:', textContent)
-        
+
         const reversedLines: string[] = []
         for (let i = textLines.length - 1; i >= 0; i--) {
           const line = textLines[i]!
@@ -1573,20 +2080,21 @@ describe('SubtitleConverter', () => {
           }
         }
         const reversed = reversedLines.join('\n\n')
-        
+
         console.log('Reversed order:', reversed)
-        
+
         expect(textContent).toContain('[STREAM] [Speaker 1]: Streamed!')
         expect(textContent).toContain('[STREAM] [Speaker 2]: Streamed!')
         expect(textContent).toContain('[STREAM] [Speaker 1]: Streamed!')
-        
+
         return {
           original: textContent,
           reversed: reversed,
           count: processedSubtitles.length,
-          processingMethod: 'Single-item streaming (no arrays during processing)'
+          processingMethod:
+            'Single-item streaming (no arrays during processing)',
         }
-      })
+      }),
     )
   })
 
@@ -1596,7 +2104,7 @@ describe('SubtitleConverter', () => {
         start: 0,
         end: 5000,
         text: 'Hello world',
-        speaker: 1
+        speaker: 1,
       }
 
       // Test single-item filters directly
@@ -1648,7 +2156,7 @@ describe('SubtitleConverter', () => {
         replaceText('Multi!'),
         addTimingOffset(500),
         filterBySpeaker(1),
-        addPrefix('[MULTI]')
+        addPrefix('[MULTI]'),
       )
       expect(multiFiltered).toHaveLength(2)
       expect(multiFiltered[0]?.text).toBe('[MULTI] Multi!')
@@ -1664,12 +2172,14 @@ describe('SubtitleConverter', () => {
       ]
 
       // Use generator for streaming
-      const streamed = Array.from(streamSubtitles(
-        subtitles,
-        replaceText('Streamed!'),
-        addTimingOffset(1000),
-        filterBySpeaker(1)
-      ))
+      const streamed = Array.from(
+        streamSubtitles(
+          subtitles,
+          replaceText('Streamed!'),
+          addTimingOffset(1000),
+          filterBySpeaker(1),
+        )(),
+      )
 
       expect(streamed).toHaveLength(2)
       expect(streamed[0]?.text).toBe('Streamed!')
@@ -1701,12 +2211,14 @@ describe('SubtitleConverter', () => {
      */
     function* processSingleItems(
       subtitles: SubtitleItem[],
-      ...filters: Array<(subtitle: SubtitleItem) => SubtitleItem | Option.Option<SubtitleItem>>
+      ...filters: Array<
+        (subtitle: SubtitleItem) => SubtitleItem | Option.Option<SubtitleItem>
+      >
     ): Generator<SubtitleItem, void, unknown> {
       for (const subtitle of subtitles) {
         let current = subtitle
         let shouldYield = true
-        
+
         // Apply each filter to the single item
         for (const filter of filters) {
           const result = filter(current)
@@ -1721,7 +2233,7 @@ describe('SubtitleConverter', () => {
             current = result
           }
         }
-        
+
         if (shouldYield) {
           yield current
         }
@@ -1735,31 +2247,40 @@ describe('SubtitleConverter', () => {
         { start: 4000, end: 6000, text: 'Third subtitle', speaker: 1 },
       ]
 
-              const processedItems: SubtitleItem[] = []
-        
-        for (const processedItem of processSingleItems(
-          originalSubtitles,
-          addTimingOffset(500),
-          replaceText('Single Item Processed!'),
-          addSpeakerInfo(true),
-          addPrefix('[SINGLE]')
-        )) {
-          processedItems.push(processedItem)
-        }
+      const processedItems: SubtitleItem[] = []
 
-              expect(processedItems).toHaveLength(3)
-        expect(processedItems[0]?.text).toBe('[SINGLE] [Speaker 1]: Single Item Processed!')
-        expect(processedItems[0]?.start).toBe(500)
-        expect(processedItems[1]?.text).toBe('[SINGLE] [Speaker 2]: Single Item Processed!')
-        expect(processedItems[1]?.start).toBe(2500)
-        expect(processedItems[2]?.text).toBe('[SINGLE] [Speaker 1]: Single Item Processed!')
-        expect(processedItems[2]?.start).toBe(4500)
+      for (const processedItem of processSingleItems(
+        originalSubtitles,
+        addTimingOffset(500),
+        replaceText('Single Item Processed!'),
+        addSpeakerInfo(true),
+        addPrefix('[SINGLE]'),
+      )) {
+        processedItems.push(processedItem)
+      }
 
-        console.log('\n=== True Single-Item Processing ===')
-        console.log('Processing method: Individual items through generator')
-        console.log('No arrays created during processing phase')
-        console.log('Memory efficient: Only one item in memory at a time')
-        console.log('Results:', processedItems.map(item => item.text))
+      expect(processedItems).toHaveLength(3)
+      expect(processedItems[0]?.text).toBe(
+        '[SINGLE] [Speaker 1]: Single Item Processed!',
+      )
+      expect(processedItems[0]?.start).toBe(500)
+      expect(processedItems[1]?.text).toBe(
+        '[SINGLE] [Speaker 2]: Single Item Processed!',
+      )
+      expect(processedItems[1]?.start).toBe(2500)
+      expect(processedItems[2]?.text).toBe(
+        '[SINGLE] [Speaker 1]: Single Item Processed!',
+      )
+      expect(processedItems[2]?.start).toBe(4500)
+
+      console.log('\n=== True Single-Item Processing ===')
+      console.log('Processing method: Individual items through generator')
+      console.log('No arrays created during processing phase')
+      console.log('Memory efficient: Only one item in memory at a time')
+      console.log(
+        'Results:',
+        processedItems.map((item) => item.text),
+      )
     })
 
     it('should demonstrate single-item conversion without arrays', () => {
@@ -1769,39 +2290,39 @@ describe('SubtitleConverter', () => {
         { start: 4000, end: 6000, text: 'Third', speaker: 1 },
       ]
 
-              const processedItems: SubtitleItem[] = []
-        
-        for (const processedItem of processSingleItems(
-          originalSubtitles,
-          addTimingOffset(1000),
-          replaceText('Converted!'),
-          addSpeakerInfo(true),
-          addPrefix('[CONVERT]')
-        )) {
-          processedItems.push(processedItem)
+      const processedItems: SubtitleItem[] = []
+
+      for (const processedItem of processSingleItems(
+        originalSubtitles,
+        addTimingOffset(1000),
+        replaceText('Converted!'),
+        addSpeakerInfo(true),
+        addPrefix('[CONVERT]'),
+      )) {
+        processedItems.push(processedItem)
+      }
+
+      const textLines: string[] = []
+      for (let i = 0; i < processedItems.length; i++) {
+        const subtitle = processedItems[i]!
+        textLines.push(subtitle.text)
+
+        if (i < processedItems.length - 1) {
+          textLines.push('')
         }
+      }
+      const textContent = textLines.join('\n')
 
-        const textLines: string[] = []
-        for (let i = 0; i < processedItems.length; i++) {
-          const subtitle = processedItems[i]!
-          textLines.push(subtitle.text)
-          
-          if (i < processedItems.length - 1) {
-            textLines.push('')
-          }
-        }
-        const textContent = textLines.join('\n')
+      expect(textContent).toContain('[CONVERT] [Speaker 1]: Converted!')
+      expect(textContent).toContain('[CONVERT] [Speaker 2]: Converted!')
+      expect(textContent).toContain('[CONVERT] [Speaker 1]: Converted!')
 
-        expect(textContent).toContain('[CONVERT] [Speaker 1]: Converted!')
-        expect(textContent).toContain('[CONVERT] [Speaker 2]: Converted!')
-        expect(textContent).toContain('[CONVERT] [Speaker 1]: Converted!')
-
-        console.log('\n=== Single-Item Conversion ===')
-        console.log('Input items:', originalSubtitles.length)
-        console.log('Processed items:', processedItems.length)
-        console.log('Output text lines:', textLines.length)
-        console.log('Conversion method: Single-item processing throughout')
-        console.log('No intermediate arrays created during processing')
+      console.log('\n=== Single-Item Conversion ===')
+      console.log('Input items:', originalSubtitles.length)
+      console.log('Processed items:', processedItems.length)
+      console.log('Output text lines:', textLines.length)
+      console.log('Conversion method: Single-item processing throughout')
+      console.log('No intermediate arrays created during processing')
     })
 
     it('should demonstrate memory-efficient single-item filtering', () => {
@@ -1814,14 +2335,14 @@ describe('SubtitleConverter', () => {
 
       // Filter by speaker using single-item processing
       const filteredItems: SubtitleItem[] = []
-      
+
       for (const processedItem of processSingleItems(
         originalSubtitles,
         addTimingOffset(500),
         replaceText('Filtered!'),
         filterBySpeaker(1), // Only keep speaker 1
         addSpeakerInfo(true),
-        addPrefix('[FILTERED]')
+        addPrefix('[FILTERED]'),
       )) {
         filteredItems.push(processedItem)
       }
@@ -1841,62 +2362,72 @@ describe('SubtitleConverter', () => {
       console.log('Memory usage: Constant (one item at a time)')
     })
 
-    it.effect('should demonstrate single-item processing with Effect.pipe', () =>
-      E.gen(function* () {
-        const originalSubtitles: SubtitleItem[] = [
-          { start: 0, end: 2000, text: 'First subtitle', speaker: 1 },
-          { start: 2000, end: 4000, text: 'Second subtitle', speaker: 2 },
-          { start: 4000, end: 6000, text: 'Third subtitle', speaker: 1 },
-        ]
+    it.effect(
+      'should demonstrate single-item processing with Effect.pipe',
+      () =>
+        E.gen(function* () {
+          const originalSubtitles: SubtitleItem[] = [
+            { start: 0, end: 2000, text: 'First subtitle', speaker: 1 },
+            { start: 2000, end: 4000, text: 'Second subtitle', speaker: 2 },
+            { start: 4000, end: 6000, text: 'Third subtitle', speaker: 1 },
+          ]
 
-        const processedItems: SubtitleItem[] = []
-        
-        for (const subtitle of originalSubtitles) {
-          const processedItem = yield* E.succeed(subtitle)
-            .pipe(
+          const processedItems: SubtitleItem[] = []
+
+          for (const subtitle of originalSubtitles) {
+            const processedItem = yield* E.succeed(subtitle).pipe(
               E.map(addTimingOffset(500)),
               E.map(replaceText('Effect Processed!')),
               E.map(addSpeakerInfo(true)),
               E.map(addPrefix('[EFFECT]')),
               E.flatMap((item) => {
                 const filtered = filterBySpeaker(1)(item)
-                return Option.isSome(filtered) 
+                return Option.isSome(filtered)
                   ? E.succeed(filtered.value)
                   : E.fail(new Error('Item filtered out'))
               }),
-              E.catchAll(() => E.succeed(null))
+              E.catchAll(() => E.succeed(null)),
             )
-          
-          if (processedItem !== null) {
-            processedItems.push(processedItem)
+
+            if (processedItem !== null) {
+              processedItems.push(processedItem)
+            }
           }
-        }
 
-        expect(processedItems).toHaveLength(2)
-        expect(processedItems[0]?.text).toBe('[EFFECT] [Speaker 1]: Effect Processed!')
-        expect(processedItems[0]?.start).toBe(500)
-        expect(processedItems[0]?.speaker).toBe(1)
-        expect(processedItems[1]?.text).toBe('[EFFECT] [Speaker 1]: Effect Processed!')
-        expect(processedItems[1]?.start).toBe(4500)
-        expect(processedItems[1]?.speaker).toBe(1)
+          expect(processedItems).toHaveLength(2)
+          expect(processedItems[0]?.text).toBe(
+            '[EFFECT] [Speaker 1]: Effect Processed!',
+          )
+          expect(processedItems[0]?.start).toBe(500)
+          expect(processedItems[0]?.speaker).toBe(1)
+          expect(processedItems[1]?.text).toBe(
+            '[EFFECT] [Speaker 1]: Effect Processed!',
+          )
+          expect(processedItems[1]?.start).toBe(4500)
+          expect(processedItems[1]?.speaker).toBe(1)
 
-        console.log('\n=== Effect.pipe Single-Item Processing ===')
-        console.log('Processing method: Effect.pipe with individual items')
-        console.log('No arrays created during processing phase')
-        console.log('Memory efficient: Only one item in Effect pipeline at a time')
-        console.log('Results:', processedItems.map(item => item.text))
-        console.log('Effect.pipe benefits:')
-        console.log('- Error handling built-in')
-        console.log('- Type safety throughout')
-        console.log('- Composable operations')
-        console.log('- Single-item processing')
+          console.log('\n=== Effect.pipe Single-Item Processing ===')
+          console.log('Processing method: Effect.pipe with individual items')
+          console.log('No arrays created during processing phase')
+          console.log(
+            'Memory efficient: Only one item in Effect pipeline at a time',
+          )
+          console.log(
+            'Results:',
+            processedItems.map((item) => item.text),
+          )
+          console.log('Effect.pipe benefits:')
+          console.log('- Error handling built-in')
+          console.log('- Type safety throughout')
+          console.log('- Composable operations')
+          console.log('- Single-item processing')
 
-        return {
-          processedCount: processedItems.length,
-          originalCount: originalSubtitles.length,
-          method: 'Effect.pipe single-item streaming'
-        }
-      })
+          return {
+            processedCount: processedItems.length,
+            originalCount: originalSubtitles.length,
+            method: 'Effect.pipe single-item streaming',
+          }
+        }),
     )
   })
-}) 
+})
