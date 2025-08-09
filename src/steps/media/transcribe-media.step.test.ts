@@ -19,11 +19,10 @@ const MediaStoreTestLayer = makeTestLayer(MediaStore)({
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>
     E.gen(function* () {
-      const request = {
-        url: new URL('https://example.com/video.mp4'),
-        language: 'en',
-      }
-      const result = yield* transcribeMediaStep(request)
+      const result = yield* transcribeMediaStep(
+        'https://example.com/video.mp4',
+        'en-GB',
+      )
 
       expect(result.json).toHaveLength(3)
       expect(result.json[0]?.text).toBe('Hello world')

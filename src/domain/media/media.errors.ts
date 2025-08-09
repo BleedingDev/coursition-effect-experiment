@@ -29,3 +29,13 @@ export class MediaClientError extends Data.TaggedError('MediaClientError')<{
   readonly source: string
   readonly error: unknown
 }> {}
+
+export class YtDlpDownloadError extends Data.TaggedError('YtDlpError')<{
+  readonly error: unknown
+}> {}
+
+export class YtDlpValidationError extends Data.TaggedError(
+  'YtDlpValidationError',
+)<{
+  readonly error: unknown
+}> {}
