@@ -8,9 +8,9 @@ import { getJobByIdUsecase } from './get-job-by-id.usecase'
 describe('getJobByIdUsecase', () => {
   it.effect('should return job when found', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase(1)
+      const result = yield* getJobByIdUsecase('1')
 
-      expect(result.id).toBe(1)
+      expect(result.id).toBe('1')
       expect(result.name).toBe('Job 1')
       expect(result.status).toBe('in-progress')
     }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
@@ -18,7 +18,7 @@ describe('getJobByIdUsecase', () => {
 
   it.effect('should handle not found error', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase(999).pipe(E.exit)
+      const result = yield* getJobByIdUsecase('999').pipe(E.exit)
 
       expect(Exit.isFailure(result)).toBe(true)
       if (Exit.isFailure(result)) {
@@ -30,9 +30,9 @@ describe('getJobByIdUsecase', () => {
 
   it.effect('should work with test service', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase(42)
+      const result = yield* getJobByIdUsecase('42')
 
-      expect(result.id).toBe(42)
+      expect(result.id).toBe('42')
       expect(result.name).toBe('Custom Test Job')
       expect(result.status).toBe('completed')
     }).pipe(

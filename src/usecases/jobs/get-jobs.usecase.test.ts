@@ -29,8 +29,8 @@ describe('getJobsUsecase', () => {
           getAllJobs: () =>
             E.succeed({
               jobs: [
-                { id: 1, name: 'Test Job 1', status: 'in-progress' },
-                { id: 2, name: 'Test Job 2', status: 'completed' },
+                { id: '1', name: 'Test Job 1', status: 'in-progress' },
+                { id: '2', name: 'Test Job 2', status: 'completed' },
               ],
             }),
         }),

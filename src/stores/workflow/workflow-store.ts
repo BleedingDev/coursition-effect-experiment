@@ -1,6 +1,12 @@
 import type * as restate from '@restatedev/restate-sdk'
 import * as clients from '@restatedev/restate-sdk-clients'
-import { Context, Effect as E, type Schema } from 'effect'
+import {
+  Config,
+  type ConfigError,
+  Context,
+  Effect as E,
+  type Schema,
+} from 'effect'
 import type { WorkflowError } from '../../domain/workflow/workflow.errors.ts'
 import {
   type StartProcessRequest,
@@ -16,34 +22,33 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       request: StartProcessRequestType,
     ) => E.Effect<
       Schema.Schema.Type<typeof StartProcessResponse>,
-      WorkflowError
+      WorkflowError | ConfigError.ConfigError
     >
   }
 >() {
   static RestateStore = WorkflowStore.of({
-    startProcess: E.fn('start-process')(function* (
-      request: StartProcessRequestType,
-    ) {
-      //TODO: Base URL from ENV param + solve auth
-      const rs = clients.connect({ url: 'http://localhost:8080' })
+    startProcess: E.fn('start-process')(function* ({
+      processId,
+      processDefinition,
+      props,
+    }: StartProcessRequestType) {
+      const restateUrl = yield* Config.url('RESTATE_URL')
 
-      const response = rs
-        .serviceClient(request.processDefinition)
-        .process(request.props)
-        .then(() => {
-          console.log('Process started successfully')
-        })
+      const rs = clients.connect({ url: restateUrl.origin })
 
-      return StartProcessResponse.make({ response })
+      const workflow = rs.workflowClient(processDefinition, processId)
+      // biome-ignore lint/suspicious/noExplicitAny: // TODO: Not sure why does Restate say it is never.
+      const responsePromise = (workflow as any).workflowSubmit(props)
+      const response = E.tryPromise(() => responsePromise)
+
+      return StartProcessResponse.make({ processId, response })
     }),
   })
 }
 
-export const executeStep = async (
+export async function executeStep<A, E>(
   ctx: restate.Context,
-  execMethod: () => any,
-) => {
-  return ctx.run(() => {
-    return E.runSync(execMethod())
-  })
+  execFn: () => E.Effect<A, E, never>,
+): Promise<A> {
+  return ctx.run(() => E.runPromise(execFn()))
 }

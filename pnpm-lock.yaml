@@ -54,23 +54,23 @@ importers:
   .:
     dependencies:
       '@ai-sdk/assemblyai':
-        specifier: 1.0.0-alpha.10
-        version: 1.0.0-alpha.10(zod@3.25.56)
+        specifier: 1.0.1
+        version: 1.0.1(zod@3.25.56)
       '@ai-sdk/deepgram':
-        specifier: 1.0.0-alpha.10
-        version: 1.0.0-alpha.10(zod@3.25.56)
+        specifier: 1.0.1
+        version: 1.0.1(zod@3.25.56)
       '@ai-sdk/elevenlabs':
-        specifier: 1.0.0-alpha.10
-        version: 1.0.0-alpha.10(zod@3.25.56)
+        specifier: 1.0.1
+        version: 1.0.1(zod@3.25.56)
       '@ai-sdk/gladia':
-        specifier: 1.0.0-alpha.10
-        version: 1.0.0-alpha.10(zod@3.25.56)
+        specifier: 1.0.1
+        version: 1.0.1(zod@3.25.56)
       '@ai-sdk/groq':
-        specifier: 2.0.0-alpha.10
-        version: 2.0.0-alpha.10(zod@3.25.56)
+        specifier: 2.0.4
+        version: 2.0.4(zod@3.25.56)
       '@ai-sdk/openai':
-        specifier: 2.0.0-alpha.10
-        version: 2.0.0-alpha.10(zod@3.25.56)
+        specifier: 2.0.7
+        version: 2.0.7(zod@3.25.56)
       '@effect/experimental':
         specifier: catalog:effect
         version: 0.48.7(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3)
@@ -87,14 +87,17 @@ importers:
         specifier: catalog:effect
         version: 0.69.4(@effect/cluster@0.30.10(@effect/platform@0.84.6(effect@3.16.3))(@effect/rpc@0.56.8(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/sql@0.33.20(@effect/experimental@0.48.7(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(@effect/rpc@0.56.8(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/sql@0.33.20(@effect/experimental@0.48.7(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(effect@3.16.3)
       '@restatedev/restate-sdk':
-        specifier: ^1.6.0
-        version: 1.6.0
+        specifier: ^1.8.1
+        version: 1.8.1
       '@restatedev/restate-sdk-clients':
-        specifier: ^1.6.0
-        version: 1.6.0
+        specifier: ^1.8.1
+        version: 1.8.1
+      '@typed/id':
+        specifier: ^0.17.2
+        version: 0.17.2(effect@3.16.3)
       ai:
-        specifier: 5.0.0-alpha.10
-        version: 5.0.0-alpha.10(zod@3.25.56)
+        specifier: 5.0.8
+        version: 5.0.8(zod@3.25.56)
       effect:
         specifier: catalog:effect
         version: 3.16.3
@@ -123,56 +126,56 @@ importers:
 
 packages:
 
-  '@ai-sdk/assemblyai@1.0.0-alpha.10':
-    resolution: {integrity: sha512-1WIZCMeDy34yfK5VdggsfGYefff+P96a1Pvm+7Z07GpZR92/ynaUcyGZRy3avo3GF3UbLY9TTYaQOpAYr/Uavg==}
+  '@ai-sdk/assemblyai@1.0.1':
+    resolution: {integrity: sha512-Bu0ic4Cb2yyuhAAWIZjP32IG74ydOygYa77QTjLK/8SrQEUWLEdtYmdZNMppphicokp9UTvEoQptLjDvN9LIlw==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/deepgram@1.0.0-alpha.10':
-    resolution: {integrity: sha512-XkhQwpE+mNyjQ6X0qjYIY4kltNu5SRe1Z9vnj1hFSj1+cjemoGjvWYJmoiiK+oncI9FB34xS2mIktwCdc285VQ==}
+  '@ai-sdk/deepgram@1.0.1':
+    resolution: {integrity: sha512-Ur68Qc6Z89JXkbpAq0xmo+DjbxIvxSGb8LK+Y5s3Pst6Lwhmc1i9h/WOiEwwTMCxsCb6ihQ1jt3KNoX0JuS0VA==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/elevenlabs@1.0.0-alpha.10':
-    resolution: {integrity: sha512-C5D91NgsuWdO8DkZRMlSz9yU3mwXE4B1gVLuhluoEDkEsdTTKqH9RT9YKGeuDK/SOyy9Y5c9DRIBv4X46Lsb9Q==}
+  '@ai-sdk/elevenlabs@1.0.1':
+    resolution: {integrity: sha512-ewMwxaQ7rt3vFzpVOvBAtDsFv6inWdkrENSrn7ws/+WxiwEcPhOejp0xqg1CkKsMT5lVC1AMDPycm23AON1sbg==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/gateway@1.0.0-alpha.10':
-    resolution: {integrity: sha512-zzz0qDz2HGwPNZpwSYkTpTmkkOWwT82c2xgQCGcP2uxs2sgOHPQDAj4yPrLhSAtr3KD7MJyXJ0P3oIfZQS5L0Q==}
+  '@ai-sdk/gateway@1.0.4':
+    resolution: {integrity: sha512-1roLdgMbFU3Nr4MC97/te7w6OqxsWBkDUkpbCcvxF3jz/ku91WVaJldn/PKU8feMKNyI5W9wnqhbjb1BqbExOQ==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/gladia@1.0.0-alpha.10':
-    resolution: {integrity: sha512-asblPJKyBX3Bd687jXCEtdr6XBrILGo7cpB3E15DJqOkDCYLsv/gsYpEP5pvgu71noIjsGgM5Jt2xhw0NEPaHA==}
+  '@ai-sdk/gladia@1.0.1':
+    resolution: {integrity: sha512-jn+w5nb2Olvvee5Aoz2vQFu2fs9/X724VQqRv97tE+tMwaJRkvvhYAZz5l702bXZPNuw1g9YaY18cTTXm7LMlA==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/groq@2.0.0-alpha.10':
-    resolution: {integrity: sha512-e8T2nPs9AJErzDxm9KuEgZGlzRCFIlkb0WEIiuqhFhYeM6IBNISZEQvDKTfeXkwm7kMNL/H5mW0najEDZwJW1w==}
+  '@ai-sdk/groq@2.0.4':
+    resolution: {integrity: sha512-tkTxVR6ZZIiNsqkM5EJ4IjCGD4ljdPxQeFWnIH8Aq0x3zXOl7JNTtNysXEevmIUaPGkLc+Q1tSpmAcOyyuszHA==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/openai@2.0.0-alpha.10':
-    resolution: {integrity: sha512-F8KeauWiLc8xgWhj/kxQLnkhn/mNi3RKikOYsUGX2V1WXQ/o+bBDtguVK6PMACeI2wJOa85IevC14M/ctj+L6Q==}
+  '@ai-sdk/openai@2.0.7':
+    resolution: {integrity: sha512-gIomHziQDBx1hs4VzDSDEFlfojf4/YQWY9F+r8ZiviGNUs5JKNbgHh1JoEHuC2XmMQ0x9LSyavLcqRn6aDxcyg==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/provider-utils@3.0.0-alpha.10':
-    resolution: {integrity: sha512-gmGZXo3phA5O6IRVBhMBKGalx8SOGlUTNQjHyfKyA6Zee6K6sBJ33kGbqW8DPDaJJPkdebsXSZS+UR8HQigbQw==}
+  '@ai-sdk/provider-utils@3.0.1':
+    resolution: {integrity: sha512-/iP1sKc6UdJgGH98OCly7sWJKv+J9G47PnTjIj40IJMUQKwDrUMyf7zOOfRtPwSuNifYhSoJQ4s1WltI65gJ/g==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
-  '@ai-sdk/provider@2.0.0-alpha.10':
-    resolution: {integrity: sha512-CKScjnFGO90x18Awp1rp2sHMB1GarXojKAiYiVAwdQk5iS0GSPp/vFnvp7pEqcZwcf88HgAhu1PZZ+76QbkccQ==}
+  '@ai-sdk/provider@2.0.0':
+    resolution: {integrity: sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA==}
     engines: {node: '>=18'}
 
   '@biomejs/biome@1.9.4':
@@ -599,16 +602,16 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@restatedev/restate-sdk-clients@1.6.0':
-    resolution: {integrity: sha512-od9GUFMekoPLIBdCET9Tr1CEY5QqBKXJYG9RWQ7LyqI/1DPUbRrFITWR6cDuTCipynb0lhFvYARDIqkCWd+JlQ==}
+  '@restatedev/restate-sdk-clients@1.8.1':
+    resolution: {integrity: sha512-eEFlGga0kBWg09czaQqXLnfUcWrfnue8j8oZjyY1zJHPJ94D1lT4n+YkuOOKgzzhFf+GicHIGSYEaQQCbHnwWQ==}
     engines: {node: '>= 18.13'}
 
-  '@restatedev/restate-sdk-core@1.6.0':
-    resolution: {integrity: sha512-e+5zpkdpLQUcKte5SQCBXCBtW3IITkFiYqfoHTgshCw0e1WFXxkd12ki6qwO3fac8zkN3d9sF8yGISTMjo5hOQ==}
+  '@restatedev/restate-sdk-core@1.8.1':
+    resolution: {integrity: sha512-cxo8PNQu/2uIJU82Km+jq381ECcWm5EoVjkYDoQdWmPDcFwRTQoKdstKlCMmuCyI1ME4cND9/e92QXtcWBOQ5A==}
     engines: {node: '>= 18.13'}
 
-  '@restatedev/restate-sdk@1.6.0':
-    resolution: {integrity: sha512-OME/8bI6kYwD+Q94gIn94CMrH+8gV7kK9Dxkf7Of8JUAC3FtOp4vpyrwxB2ksA2qfIbW5riqeI+7MabxMczc3A==}
+  '@restatedev/restate-sdk@1.8.1':
+    resolution: {integrity: sha512-GebBY7cYUAyGHKeLZh3b05iP3yDefK17NcIUoHmPG+dPnU3HK6Lr/OYBVTAvzgCZUvelZ351gch4ltMRzXLi7Q==}
     engines: {node: '>= 18.13'}
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
@@ -714,6 +717,11 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
+  '@typed/id@0.17.2':
+    resolution: {integrity: sha512-z/Z14/moeu9x45IpkGaRwuvb+CQ3s3UCc/agcpZibTz1yPb3RgSDXx4rOHIuyb6hG6oNzqe9yY4GbbMq3Hb5Ug==}
+    peerDependencies:
+      effect: ^3.14.7
+
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
 
@@ -757,11 +765,11 @@ packages:
   '@vitest/utils@3.2.2':
     resolution: {integrity: sha512-qJYMllrWpF/OYfWHP32T31QCaLa3BAzT/n/8mNGhPdVcjY+JYazQFO1nsJvXU12Kp1xMpNY4AGuljPTNjQve6A==}
 
-  ai@5.0.0-alpha.10:
-    resolution: {integrity: sha512-Uvlc2RpILJ3iayPR0rH92hrHvjYapg3iTGJ+Hck93ZGsjtU1yk2UzQSKXcO11REuq3t49AGAX1Y8koLcY/wBNw==}
+  ai@5.0.8:
+    resolution: {integrity: sha512-qbnhj046UvG30V1S5WhjBn+RBGEAmi8PSZWqMhRsE3EPxvO5BcePXTZFA23e9MYyWS9zr4Vm8Mv3wQXwLmtIBw==}
     engines: {node: '>=18'}
     peerDependencies:
-      zod: ^3.25.49
+      zod: ^3.25.76 || ^4
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -841,6 +849,10 @@ packages:
 
   estree-walker@3.0.3:
     resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
+
+  eventsource-parser@3.0.3:
+    resolution: {integrity: sha512-nVpZkTMM9rF6AQ9gPJpFsNAMt48wIzB5TQgiTLdHiuO8XEDhUgZEhqKlZWXbIzo9VmJ/HvysHqEaVeD5v9TPvA==}
+    engines: {node: '>=20.0.0'}
 
   expect-type@1.2.1:
     resolution: {integrity: sha512-/kP8CAwxzLVEeFrMm4kMmy4CCDlpipyA7MYLVrdJIkV0fYF0UaigQHRsxHiuY/GEea+bh4KSv3TIlgr+2UL6bw==}
@@ -1188,56 +1200,57 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/assemblyai@1.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/assemblyai@1.0.1(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/deepgram@1.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/deepgram@1.0.1(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/elevenlabs@1.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/elevenlabs@1.0.1(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/gateway@1.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/gateway@1.0.4(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/gladia@1.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/gladia@1.0.1(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/groq@2.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/groq@2.0.4(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/openai@2.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/openai@2.0.7(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       zod: 3.25.56
 
-  '@ai-sdk/provider-utils@3.0.0-alpha.10(zod@3.25.56)':
+  '@ai-sdk/provider-utils@3.0.1(zod@3.25.56)':
     dependencies:
-      '@ai-sdk/provider': 2.0.0-alpha.10
+      '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.3
       zod: 3.25.56
       zod-to-json-schema: 3.24.5(zod@3.25.56)
 
-  '@ai-sdk/provider@2.0.0-alpha.10':
+  '@ai-sdk/provider@2.0.0':
     dependencies:
       json-schema: 0.4.0
 
@@ -1512,15 +1525,15 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@restatedev/restate-sdk-clients@1.6.0':
+  '@restatedev/restate-sdk-clients@1.8.1':
     dependencies:
-      '@restatedev/restate-sdk-core': 1.6.0
+      '@restatedev/restate-sdk-core': 1.8.1
 
-  '@restatedev/restate-sdk-core@1.6.0': {}
+  '@restatedev/restate-sdk-core@1.8.1': {}
 
-  '@restatedev/restate-sdk@1.6.0':
+  '@restatedev/restate-sdk@1.8.1':
     dependencies:
-      '@restatedev/restate-sdk-core': 1.6.0
+      '@restatedev/restate-sdk-core': 1.8.1
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
     optional: true
@@ -1584,6 +1597,10 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
+  '@typed/id@0.17.2(effect@3.16.3)':
+    dependencies:
+      effect: 3.16.3
+
   '@types/chai@5.2.2':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -1644,11 +1661,11 @@ snapshots:
       loupe: 3.1.3
       tinyrainbow: 2.0.0
 
-  ai@5.0.0-alpha.10(zod@3.25.56):
+  ai@5.0.8(zod@3.25.56):
     dependencies:
-      '@ai-sdk/gateway': 1.0.0-alpha.10(zod@3.25.56)
-      '@ai-sdk/provider': 2.0.0-alpha.10
-      '@ai-sdk/provider-utils': 3.0.0-alpha.10(zod@3.25.56)
+      '@ai-sdk/gateway': 1.0.4(zod@3.25.56)
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.1(zod@3.25.56)
       '@opentelemetry/api': 1.9.0
       zod: 3.25.56
 
@@ -1738,6 +1755,8 @@ snapshots:
   estree-walker@3.0.3:
     dependencies:
       '@types/estree': 1.0.7
+
+  eventsource-parser@3.0.3: {}
 
   expect-type@1.2.1: {}
 

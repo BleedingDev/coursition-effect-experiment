@@ -27,7 +27,10 @@ export class MediaStore extends Context.Tag('MediaStore')<
   }
 >() {
   static Deepgram = MediaStore.of({
-    parseMedia: E.fn('parse-media')(function* (media, language = 'en-GB') {
+    parseMedia: E.fn('parse-media')(function* (
+      media: ArrayBuffer,
+      language = 'en-GB',
+    ) {
       yield* E.annotateCurrentSpan('request', media)
 
       const apiKey = yield* Config.redacted('DEEPGRAM_API_KEY')

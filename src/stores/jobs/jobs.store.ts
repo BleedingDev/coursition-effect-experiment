@@ -19,9 +19,9 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
         E.succeed(
           JobsResponse.make({
             jobs: [
-              { id: 1, name: 'Parse Video 1', status: 'completed' },
-              { id: 2, name: 'Parse Audio 2', status: 'in-progress' },
-              { id: 3, name: 'Parse Document 3', status: 'pending' },
+              { id: '1', name: 'Parse Video 1', status: 'completed' },
+              { id: '2', name: 'Parse Audio 2', status: 'in-progress' },
+              { id: '3', name: 'Parse Document 3', status: 'pending' },
             ],
           }),
         ).pipe(
@@ -30,10 +30,10 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
           }),
         ),
 
-      getJobById: (id: number) =>
+      getJobById: (id: string) =>
         E.gen(function* () {
           // Mock implementation - replace with real database lookup
-          if (id === 999) {
+          if (id === '999') {
             return yield* E.fail(new JobNotFoundError({ id }))
           }
 
@@ -48,7 +48,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
           }),
         ),
 
-      getJobResult: (jobId: number) =>
+      getJobResult: (jobId: string) =>
         E.gen(function* () {
           const jobsStore = yield* JobsStore
           const job = yield* jobsStore.getJobById(jobId)

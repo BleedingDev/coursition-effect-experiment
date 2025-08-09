@@ -28,7 +28,7 @@ describe('getJobsHandler', () => {
         JobsStore.makeTestService({
           getAllJobs: () =>
             E.succeed({
-              jobs: [{ id: 99, name: 'Handler Test Job', status: 'pending' }],
+              jobs: [{ id: '99', name: 'Handler Test Job', status: 'pending' }],
             }),
         }),
       ),

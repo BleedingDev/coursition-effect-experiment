@@ -23,9 +23,9 @@ describe('JobsStore', () => {
     it.effect('should return job when found', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobById(1)
+        const result = yield* store.getJobById('1')
 
-        expect(result.id).toBe(1)
+        expect(result.id).toBe('1')
         expect(result.name).toBe('Job 1')
         expect(result.status).toBe('in-progress')
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
@@ -34,7 +34,7 @@ describe('JobsStore', () => {
     it.effect('should handle not found error', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobById(999).pipe(E.exit)
+        const result = yield* store.getJobById('999').pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
@@ -49,9 +49,9 @@ describe('JobsStore', () => {
     it.effect('should return result for completed job', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobResult(1)
+        const result = yield* store.getJobResult('1')
 
-        expect(result.id).toBe(1)
+        expect(result.id).toBe('1')
         expect(result.result).toBe('Result for job 1')
       }).pipe(
         E.provide(
@@ -76,7 +76,7 @@ describe('JobsStore', () => {
     it.effect('should handle result not found for incomplete job', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobResult(2).pipe(E.exit)
+        const result = yield* store.getJobResult('2').pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {

@@ -13,16 +13,16 @@ export class JobNotFound extends Schema.TaggedError<JobNotFound>()(
 
 // Internal domain errors (for business logic)
 export class JobProcessingError extends Data.TaggedError('JobProcessingError')<{
-  readonly jobId: number
+  readonly jobId: string
   readonly reason: string
 }> {}
 
 export class JobNotFoundError extends Data.TaggedError('JobNotFoundError')<{
-  readonly id: number
+  readonly id: string
 }> {}
 
 export class JobResultNotFoundError extends Data.TaggedError(
   'JobResultNotFoundError',
 )<{
-  readonly jobId: number
+  readonly jobId: string
 }> {}

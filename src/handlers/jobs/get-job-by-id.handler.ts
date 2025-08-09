@@ -2,7 +2,7 @@ import { Effect as E } from 'effect'
 import { JobNotFound } from '../../domain/jobs/jobs.errors'
 import { getJobByIdUsecase } from '../../usecases/jobs/get-job-by-id.usecase'
 
-export const getJobByIdHandler = (id: number) =>
+export const getJobByIdHandler = (id: string) =>
   E.gen(function* () {
     const result = yield* getJobByIdUsecase(id)
     return result
