@@ -34,6 +34,10 @@ export const UnifiedMediaRequest = Schema.extend(
   ParseMediaOptions,
 )
 
+export type RestateParsedMediaRequestType =
+  | { url: string; language: string }
+  | { file: Multipart.PersistedFile; language: string }
+
 export const MediaResponse = Schema.Struct({
   json: SubtitleJson,
 })

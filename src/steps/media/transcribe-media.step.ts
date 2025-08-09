@@ -1,14 +1,13 @@
-import type { DataContent } from 'ai'
 import { Effect as E } from 'effect'
 import { MediaStore } from 'src/stores/media/media.store'
 
-const transcribeMediaEffect = (file: DataContent) =>
+const transcribeMediaEffect = (url: string) =>
   E.gen(function* () {
     const mediaStore = yield* MediaStore
-    return yield* mediaStore.parseMedia(file)
+    return yield* mediaStore.parseMedia(new URL(url))
   }).pipe(E.tapError(E.logError), E.orDie)
 
-export const transcribeMediaStep = (file: DataContent) =>
-  transcribeMediaEffect(file).pipe(
+export const transcribeMediaStep = (url: string) =>
+  transcribeMediaEffect(url).pipe(
     E.provideService(MediaStore, MediaStore.Deepgram),
   )

@@ -9,7 +9,7 @@ import {
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import * as restate from '@restatedev/restate-sdk'
-import { Sha1 } from '@typed/id'
+import { GetRandomValues } from '@typed/id'
 import { Effect as E, Layer } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
@@ -61,7 +61,7 @@ const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
   HttpServer.withLogAddress,
   Layer.provide(ServerLayer),
   Layer.provide(ApiImplementation),
-  Layer.provide(Sha1.Default),
+  Layer.provide(GetRandomValues.CryptoRandom),
 )
 
 BunRuntime.runMain(Layer.launch(HttpLive))

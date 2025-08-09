@@ -1,5 +1,5 @@
 import { createDeepgram } from '@ai-sdk/deepgram'
-import { type DataContent, experimental_transcribe as transcribe } from 'ai'
+import { experimental_transcribe as transcribe } from 'ai'
 import {
   Config,
   type ConfigError,
@@ -18,7 +18,7 @@ export class MediaStore extends Context.Tag('MediaStore')<
   MediaStore,
   {
     readonly parseMedia: (
-      media: DataContent | URL,
+      media: URL,
       language?: string,
     ) => E.Effect<
       Schema.Schema.Type<typeof MediaResponse>,
@@ -27,10 +27,7 @@ export class MediaStore extends Context.Tag('MediaStore')<
   }
 >() {
   static Deepgram = MediaStore.of({
-    parseMedia: E.fn('parse-media')(function* (
-      media: ArrayBuffer,
-      language = 'en-GB',
-    ) {
+    parseMedia: E.fn('parse-media')(function* (media: URL, language = 'en-GB') {
       yield* E.annotateCurrentSpan('request', media)
 
       const apiKey = yield* Config.redacted('DEEPGRAM_API_KEY')
