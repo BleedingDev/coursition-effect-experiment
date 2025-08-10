@@ -34,9 +34,11 @@ describe('getJobByIdUsecase', () => {
 
   it.effect('should work with test service', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase('42')
+      const result = yield* getJobByIdUsecase(
+        'd129da81-54a3-461b-8239-450154dcfcb1',
+      )
 
-      expect(result.id).toBe('42')
+      expect(result.id).toBe('d129da81-54a3-461b-8239-450154dcfcb1')
       expect(result.name).toBe('Custom Test Job')
       expect(result.status).toBe('completed')
     }).pipe(

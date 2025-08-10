@@ -17,13 +17,7 @@ export const JobResponse = Schema.Struct({
 })
 
 export const JobsResponse = Schema.Struct({
-  jobs: Schema.Array(
-    Schema.Struct({
-      id: Schema.UUID,
-      name: Schema.String,
-      status: JobStatus,
-    }),
-  ),
+  jobs: Schema.Array(JobResponse),
 })
 
 export const JobResultResponse = Schema.Struct({

@@ -5,6 +5,7 @@ import {
   type ConfigError,
   Context,
   Effect as E,
+  Schedule,
   type Schema,
 } from 'effect'
 import {
@@ -38,10 +39,10 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       const restateUrl = yield* Config.url('RESTATE_URL')
 
       const rs = yield* E.try({
-        try: () => clients.connect({ url: restateUrl.origin }),
+        try: () => clients.connect({ url: restateUrl.toString() }),
         catch: (error) =>
           new WorkflowConnectionError({ processId, cause: error }),
-      })
+      }).pipe(E.retry(Schedule.exponential('1 second', 2)))
 
       const workflow = rs.workflowClient(processDefinition, processId)
       const response = yield* E.tryPromise({

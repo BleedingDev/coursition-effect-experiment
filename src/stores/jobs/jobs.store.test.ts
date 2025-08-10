@@ -36,14 +36,13 @@ describe('JobsStore', () => {
     it.effect('should handle not found error', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store
-          .getJobById('0bb4870a-09a9-4adc-8e86-0a024075756d')
-          .pipe(E.exit)
+        const jobId = '0bb4870a-09a9-4adc-8e86-0a024075756d'
+        const result = yield* store.getJobById(jobId).pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
         const error = getExitError(result)
         expect(error?._tag).toBe('JobNotFoundError')
-        expect(error?.jobId).toBe('0bb4870a-09a9-4adc-8e86-0a024075756d')
+        expect(error?.jobId).toBe(jobId)
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
   })
