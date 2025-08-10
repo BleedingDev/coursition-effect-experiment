@@ -5,11 +5,12 @@ import {
   type ConfigError,
   Context,
   Effect as E,
+  Layer,
   Schedule,
   type Schema,
 } from 'effect'
 import {
-  WorkflowConnectionError,
+  type WorkflowConnectionError,
   WorkflowCreationError,
 } from '../../domain/workflow/workflow.errors.ts'
 import {
@@ -19,6 +20,30 @@ import {
 
 type StartProcessRequestType = Schema.Schema.Type<typeof StartProcessRequest>
 
+export class RestateClient extends Context.Tag('RestateClient')<
+  RestateClient,
+  clients.Ingress
+>() {}
+
+export const RestateClientLive = Layer.effect(
+  RestateClient,
+  E.gen(function* () {
+    const restateUrl = yield* Config.url('RESTATE_URL')
+
+    const client = yield* E.try({
+      try: () => clients.connect({ url: restateUrl.toString() }),
+      catch: (error) => new Error(`Failed to connect to Restate: ${error}`),
+    }).pipe(
+      E.retry(
+        Schedule.union(Schedule.exponential('1 second', 2), Schedule.recurs(5)),
+      ),
+      E.tap(() => E.log('Successfully connected to Restate')),
+    )
+
+    return client
+  }),
+)
+
 export class WorkflowStore extends Context.Tag('WorkflowStore')<
   WorkflowStore,
   {
@@ -26,7 +51,8 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       request: StartProcessRequestType,
     ) => E.Effect<
       Schema.Schema.Type<typeof StartProcessResponse>,
-      WorkflowConnectionError | WorkflowCreationError | ConfigError.ConfigError
+      WorkflowConnectionError | WorkflowCreationError | ConfigError.ConfigError,
+      RestateClient
     >
   }
 >() {
@@ -36,20 +62,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       processDefinition,
       props,
     }: StartProcessRequestType) {
-      const restateUrl = yield* Config.url('RESTATE_URL')
-
-      const rs = yield* E.try({
-        try: () => clients.connect({ url: restateUrl.toString() }),
-        catch: (error) =>
-          new WorkflowConnectionError({ processId, cause: error }),
-      }).pipe(
-        E.retry(
-          Schedule.exponential('1 second', 2).pipe(
-            Schedule.jittered,
-            Schedule.recurs(5),
-          ),
-        ),
-      )
+      const rs = yield* RestateClient
 
       const workflow = rs.workflowClient(processDefinition, processId)
       const response = yield* E.tryPromise({
@@ -64,6 +77,8 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       return StartProcessResponse.make({ processId, response })
     }),
   })
+
+  static Live = Layer.succeed(WorkflowStore, WorkflowStore.RestateStore)
 }
 
 export async function executeStep<A, E>(
