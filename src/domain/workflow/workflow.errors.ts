@@ -9,12 +9,12 @@ export class WorkflowConnectionError extends Data.TaggedError(
   'WorkflowConnectionError',
 )<{
   readonly processId: string
-  readonly error: unknown
+  readonly cause: unknown
 }> {}
 
 export class WorkflowCreationError extends Data.TaggedError(
   'WorkflowCreationError',
 )<{
   readonly processId: string
-  readonly error: unknown
+  readonly cause: unknown
 }> {}

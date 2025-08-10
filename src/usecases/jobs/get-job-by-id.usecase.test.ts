@@ -14,7 +14,7 @@ describe('getJobByIdUsecase', () => {
 
       expect(result.id).toBe('13c7cc78-1637-45a8-af8a-55af568683e2')
       expect(result.name).toBe('Job 13c7cc78-1637-45a8-af8a-55af568683e2')
-      expect(result.status).toBe('in-progress')
+      expect(result.status).toBe('running')
     }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
   )
 

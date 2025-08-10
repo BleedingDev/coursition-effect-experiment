@@ -32,7 +32,7 @@ describe('getJobsUsecase', () => {
                 {
                   id: 'e2fd39c8-0324-4c91-bd01-d94509aad7c1',
                   name: 'Test Job 1',
-                  status: 'in-progress',
+                  status: 'running',
                 },
                 {
                   id: 'acc2e3d9-09c0-4cd4-b80f-020a39b6424a',

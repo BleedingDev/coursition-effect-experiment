@@ -27,7 +27,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
               {
                 id: '25b26ec4-6ece-4b85-9aea-50cf98b06058',
                 name: 'Parse Audio 2',
-                status: 'in-progress',
+                status: 'running',
               },
               {
                 id: 'ecb1e4b4-1854-4d89-b354-16717f38cc08',
@@ -52,7 +52,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
           return JobResponse.make({
             id,
             name: `Job ${id}`,
-            status: 'in-progress',
+            status: 'running',
           })
         }).pipe(
           E.withSpan('JobsStore.getJobById', {

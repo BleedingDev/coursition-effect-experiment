@@ -39,7 +39,8 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
 
       const rs = yield* E.try({
         try: () => clients.connect({ url: restateUrl.origin }),
-        catch: (error) => new WorkflowConnectionError({ processId, error }),
+        catch: (error) =>
+          new WorkflowConnectionError({ processId, cause: error }),
       })
 
       const workflow = rs.workflowClient(processDefinition, processId)
@@ -48,7 +49,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
           // biome-ignore lint/suspicious/noExplicitAny: // TODO: Not sure why does Restate say it is never.
           (workflow as any).workflowSubmit(props),
         catch: (error) => {
-          return new WorkflowCreationError({ processId, error })
+          return new WorkflowCreationError({ processId, cause: error })
         },
       })
 

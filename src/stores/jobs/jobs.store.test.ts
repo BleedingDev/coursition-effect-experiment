@@ -29,7 +29,7 @@ describe('JobsStore', () => {
 
         expect(result.id).toBe('09467777-7801-40ed-b683-5a9ae8ae3141')
         expect(result.name).toBe('Job 09467777-7801-40ed-b683-5a9ae8ae3141')
-        expect(result.status).toBe('in-progress')
+        expect(result.status).toBe('running')
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
 
@@ -84,7 +84,9 @@ describe('JobsStore', () => {
     it.effect('should handle result not found for incomplete job', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobResult('2').pipe(E.exit)
+        const result = yield* store
+          .getJobResult('25b26ec4-6ece-4b85-9aea-50cf98b06058')
+          .pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
@@ -98,7 +100,7 @@ describe('JobsStore', () => {
               E.succeed({
                 id,
                 name: `Job ${id}`,
-                status: 'in-progress',
+                status: 'running',
               }),
             getJobResult: (jobId) =>
               E.fail(new JobResultNotFoundError({ jobId })),
