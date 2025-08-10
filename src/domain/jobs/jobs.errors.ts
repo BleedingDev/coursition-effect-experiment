@@ -18,7 +18,7 @@ export class JobProcessingError extends Data.TaggedError('JobProcessingError')<{
 }> {}
 
 export class JobNotFoundError extends Data.TaggedError('JobNotFoundError')<{
-  readonly id: string
+  readonly jobId: string
 }> {}
 
 export class JobResultNotFoundError extends Data.TaggedError(

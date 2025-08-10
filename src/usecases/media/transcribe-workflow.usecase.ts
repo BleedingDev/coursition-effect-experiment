@@ -49,7 +49,7 @@ export const transcribeWorkflowDefinition = restate.workflow({
       const fileUrl = await executeStep(ctx, () => downloadLinkStep(props))
 
       const subtitlesJson = await executeStep(ctx, () =>
-        transcribeMediaStep(fileUrl.toString()),
+        transcribeMediaStep(fileUrl.toString(), props.language),
       )
 
       await executeStep(ctx, () =>

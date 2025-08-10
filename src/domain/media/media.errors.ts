@@ -30,7 +30,7 @@ export class MediaClientError extends Data.TaggedError('MediaClientError')<{
   readonly error: unknown
 }> {}
 
-export class YtDlpDownloadError extends Data.TaggedError('YtDlpError')<{
+export class YtDlpDownloadError extends Data.TaggedError('YtDlpDownloadError')<{
   readonly error: unknown
 }> {}
 

@@ -8,17 +8,21 @@ import { getJobByIdUsecase } from './get-job-by-id.usecase'
 describe('getJobByIdUsecase', () => {
   it.effect('should return job when found', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase('1')
+      const result = yield* getJobByIdUsecase(
+        '13c7cc78-1637-45a8-af8a-55af568683e2',
+      )
 
-      expect(result.id).toBe('1')
-      expect(result.name).toBe('Job 1')
+      expect(result.id).toBe('13c7cc78-1637-45a8-af8a-55af568683e2')
+      expect(result.name).toBe('Job 13c7cc78-1637-45a8-af8a-55af568683e2')
       expect(result.status).toBe('in-progress')
     }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
   )
 
   it.effect('should handle not found error', () =>
     E.gen(function* () {
-      const result = yield* getJobByIdUsecase('999').pipe(E.exit)
+      const result = yield* getJobByIdUsecase(
+        '0bb4870a-09a9-4adc-8e86-0a024075756d',
+      ).pipe(E.exit)
 
       expect(Exit.isFailure(result)).toBe(true)
       if (Exit.isFailure(result)) {

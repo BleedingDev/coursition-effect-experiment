@@ -7,7 +7,10 @@ import {
   Effect as E,
   type Schema,
 } from 'effect'
-import type { WorkflowError } from '../../domain/workflow/workflow.errors.ts'
+import {
+  WorkflowConnectionError,
+  WorkflowCreationError,
+} from '../../domain/workflow/workflow.errors.ts'
 import {
   type StartProcessRequest,
   StartProcessResponse,
@@ -22,7 +25,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       request: StartProcessRequestType,
     ) => E.Effect<
       Schema.Schema.Type<typeof StartProcessResponse>,
-      WorkflowError | ConfigError.ConfigError
+      WorkflowConnectionError | WorkflowCreationError | ConfigError.ConfigError
     >
   }
 >() {
@@ -34,12 +37,20 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
     }: StartProcessRequestType) {
       const restateUrl = yield* Config.url('RESTATE_URL')
 
-      const rs = clients.connect({ url: restateUrl.origin })
+      const rs = yield* E.try({
+        try: () => clients.connect({ url: restateUrl.origin }),
+        catch: (error) => new WorkflowConnectionError({ processId, error }),
+      })
 
       const workflow = rs.workflowClient(processDefinition, processId)
-      // biome-ignore lint/suspicious/noExplicitAny: // TODO: Not sure why does Restate say it is never.
-      const responsePromise = (workflow as any).workflowSubmit(props)
-      const response = E.tryPromise(() => responsePromise)
+      const response = yield* E.tryPromise({
+        try: () =>
+          // biome-ignore lint/suspicious/noExplicitAny: // TODO: Not sure why does Restate say it is never.
+          (workflow as any).workflowSubmit(props),
+        catch: (error) => {
+          return new WorkflowCreationError({ processId, error })
+        },
+      })
 
       return StartProcessResponse.make({ processId, response })
     }),

@@ -43,8 +43,8 @@ catalogs:
       version: 3.2.2
   types:
     '@types/bun':
-      specifier: ^1.2.19
-      version: 1.2.19
+      specifier: ^1.2.20
+      version: 1.2.20
     ts-patch:
       specifier: ^3.3.0
       version: 3.3.0
@@ -113,7 +113,7 @@ importers:
         version: 0.23.3(effect@3.16.3)(vitest@3.2.2)
       '@types/bun':
         specifier: catalog:types
-        version: 1.2.19(@types/react@19.1.9)
+        version: 1.2.20(@types/react@19.1.9)
       '@vitest/ui':
         specifier: catalog:test
         version: 3.2.2(vitest@3.2.2)
@@ -728,8 +728,8 @@ packages:
     peerDependencies:
       effect: ^3.14.7
 
-  '@types/bun@1.2.19':
-    resolution: {integrity: sha512-d9ZCmrH3CJ2uYKXQIUuZ/pUnTqIvLDS0SK7pFmbx8ma+ziH/FRMoAq5bYpRG7y+w1gl+HgyNZbtqgMq4W4e2Lg==}
+  '@types/bun@1.2.20':
+    resolution: {integrity: sha512-dX3RGzQ8+KgmMw7CsW4xT5ITBSCrSbfHc36SNT31EOUg/LA9JWq0VDdEXDRSe1InVWpd2yLUM1FUF/kEOyTzYA==}
 
   '@types/chai@5.2.2':
     resolution: {integrity: sha512-8kB30R7Hwqf40JPiKhVzodJs2Qc1ZJ5zuT3uzw5Hq/dhNCl3G3l83jfpdI1e20BP348+fV7VIL/+FxaXkqBmWg==}
@@ -802,8 +802,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  bun-types@1.2.19:
-    resolution: {integrity: sha512-uAOTaZSPuYsWIXRpj7o56Let0g/wjihKCkeRqUBhlLVM/Bt+Fj9xTo+LhC1OV1XDaGkz4hNC80et5xgy+9KTHQ==}
+  bun-types@1.2.20:
+    resolution: {integrity: sha512-pxTnQYOrKvdOwyiyd/7sMt9yFOenN004Y6O4lCcCUoKVej48FS5cvTw9geRaEcB9TsDZaJKAxPTVvi8tFsVuXA==}
     peerDependencies:
       '@types/react': ^19
 
@@ -1627,9 +1627,9 @@ snapshots:
     dependencies:
       effect: 3.16.3
 
-  '@types/bun@1.2.19(@types/react@19.1.9)':
+  '@types/bun@1.2.20(@types/react@19.1.9)':
     dependencies:
-      bun-types: 1.2.19(@types/react@19.1.9)
+      bun-types: 1.2.20(@types/react@19.1.9)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -1721,7 +1721,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  bun-types@1.2.19(@types/react@19.1.9):
+  bun-types@1.2.20(@types/react@19.1.9):
     dependencies:
       '@types/node': 24.2.1
       '@types/react': 19.1.9

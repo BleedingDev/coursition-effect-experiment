@@ -23,10 +23,12 @@ describe('JobsStore', () => {
     it.effect('should return job when found', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobById('1')
+        const result = yield* store.getJobById(
+          '09467777-7801-40ed-b683-5a9ae8ae3141',
+        )
 
-        expect(result.id).toBe('1')
-        expect(result.name).toBe('Job 1')
+        expect(result.id).toBe('09467777-7801-40ed-b683-5a9ae8ae3141')
+        expect(result.name).toBe('Job 09467777-7801-40ed-b683-5a9ae8ae3141')
         expect(result.status).toBe('in-progress')
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
@@ -34,7 +36,9 @@ describe('JobsStore', () => {
     it.effect('should handle not found error', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobById('999').pipe(E.exit)
+        const result = yield* store
+          .getJobById('0bb4870a-09a9-4adc-8e86-0a024075756d')
+          .pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
@@ -49,10 +53,14 @@ describe('JobsStore', () => {
     it.effect('should return result for completed job', () =>
       E.gen(function* () {
         const store = yield* JobsStore
-        const result = yield* store.getJobResult('1')
+        const result = yield* store.getJobResult(
+          'e9f04d2e-ddf1-4f82-b49b-6180a70ca91a',
+        )
 
-        expect(result.id).toBe('1')
-        expect(result.result).toBe('Result for job 1')
+        expect(result.id).toBe('e9f04d2e-ddf1-4f82-b49b-6180a70ca91a')
+        expect(result.result).toBe(
+          'Result for job e9f04d2e-ddf1-4f82-b49b-6180a70ca91a',
+        )
       }).pipe(
         E.provide(
           JobsStore.makeTestService({
