@@ -1,7 +1,7 @@
 import { Effect as E } from 'effect'
 import { MediaStore } from 'src/stores/media/media.store'
 
-const transcribeMediaEffect = (url: string, language?: string) =>
+export const transcribeMediaEffect = (url: string, language?: string) =>
   E.gen(function* () {
     const mediaStore = yield* MediaStore
     return yield* mediaStore.parseMedia(new URL(url), language)

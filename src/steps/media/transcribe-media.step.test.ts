@@ -3,7 +3,7 @@ import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Layer } from 'effect'
 import { MediaStore } from '../../stores/media/media.store'
 import { makeTestLayer } from '../../test-utils'
-import { transcribeMediaStep } from './transcribe-media.step'
+import { transcribeMediaEffect } from './transcribe-media.step'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
   parseMedia: () =>
@@ -19,7 +19,7 @@ const MediaStoreTestLayer = makeTestLayer(MediaStore)({
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>
     E.gen(function* () {
-      const result = yield* transcribeMediaStep(
+      const result = yield* transcribeMediaEffect(
         'https://example.com/video.mp4',
         'en-GB',
       )

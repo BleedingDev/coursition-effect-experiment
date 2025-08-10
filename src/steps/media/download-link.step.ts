@@ -1,34 +1,36 @@
 import { FileSystem, Path } from '@effect/platform'
 import { BunContext } from '@effect/platform-bun'
 import { spawn } from 'bun'
-import { Effect as E } from 'effect'
-import {
-  YtDlpDownloadError,
-  YtDlpValidationError,
-} from 'src/domain/media/media.errors'
+import { Console, Effect as E } from 'effect'
+import { YtDlpDownloadError } from 'src/domain/media/media.errors'
+import { S3Config, S3FileSystem, S3FileSystemLive } from 'src/platform/s3-fs'
 import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
 
 const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
   E.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
+    const localFs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+    const config = yield* S3Config
+    const s3Fs = yield* S3FileSystem
 
     if ('url' in request) {
+      yield* Console.log('Starting download for URL:', request.url)
       const canDownload = yield* E.tryPromise({
         try: async () => {
-          const proc = spawn(['yt-dlp', '--simulate', '--quiet', request.url])
+          const proc = spawn(['yt-dlp', '-x', '--simulate', request.url])
           const exitCode = await proc.exited
           return exitCode === 0
         },
-        catch: (error) => new YtDlpValidationError({ error }),
+        catch: () => false,
       })
 
       if (canDownload) {
         const timestamp = Date.now()
         const tmpDir = path.join(process.cwd(), 'tmp')
-        const outputPath = path.join(tmpDir, `${timestamp}.mp3`)
+        const filename = `${timestamp}.mp3`
+        const localPath = path.join(tmpDir, filename)
 
-        yield* fs.makeDirectory(tmpDir, { recursive: true })
+        yield* localFs.makeDirectory(tmpDir, { recursive: true })
 
         yield* E.tryPromise({
           try: async () => {
@@ -38,24 +40,41 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
               '--audio-format',
               'mp3',
               '-o',
-              outputPath,
+              localPath,
               request.url,
             ])
             const exitCode = await proc.exited
             if (exitCode !== 0) {
-              E.fail(new YtDlpDownloadError({ error: 'Download failed' }))
+              throw new Error('Download failed')
             }
           },
           catch: (error) => new YtDlpDownloadError({ error }),
         })
 
-        return new URL('')
+        const audioData = yield* localFs.readFile(localPath)
+        const s3Path = `downloads/${request.language}/${filename}`
+        yield* s3Fs.writeFile(s3Path, audioData)
+        yield* localFs.remove(localPath)
+
+        return new URL(`${config.publicBaseUrl}/${s3Path}`)
       }
+
       return new URL(request.url)
     }
 
-    // const media = yield* fs.readFile(request.file.path)
-    return new URL('')
+    if ('file' in request) {
+      const fileData = yield* localFs.readFile(request.file.path)
+      const timestamp = Date.now()
+      const extension = path.extname(request.file.name)
+      const s3Path = `uploads/${request.language}/${timestamp}${extension}`
+
+      yield* s3Fs.writeFile(s3Path, fileData)
+      yield* localFs.remove(request.file.path).pipe(E.catchAll(() => E.void))
+
+      return new URL(`${config.publicBaseUrl}/${s3Path}`)
+    }
+
+    return yield* E.fail(new Error('No valid input provided'))
   }).pipe(
     E.tapError(E.logError),
     E.orDie,
@@ -68,4 +87,7 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
   )
 
 export const downloadLinkStep = (request: RestateParsedMediaRequestType) =>
-  downloadLinkEffect(request).pipe(E.provide(BunContext.layer))
+  downloadLinkEffect(request).pipe(
+    E.provide(BunContext.layer),
+    E.provide(S3FileSystemLive),
+  )
