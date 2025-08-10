@@ -4,6 +4,7 @@ import { spawn } from 'bun'
 import { Console, Effect as E } from 'effect'
 import { YtDlpDownloadError } from 'src/domain/media/media.errors'
 import { S3Config, S3FileSystem, S3FileSystemLive } from 'src/platform/s3-fs'
+import { slugify } from 'src/utils/string'
 import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
 
 const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
@@ -15,34 +16,56 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
 
     if ('url' in request) {
       yield* Console.log('Starting download for URL:', request.url)
-      const canDownload = yield* E.tryPromise({
+
+      const metadata = yield* E.tryPromise({
         try: async () => {
-          const proc = spawn(['yt-dlp', '-x', '--simulate', request.url])
+          const proc = spawn(
+            ['yt-dlp', '--dump-json', '--simulate', '--', request.url],
+            { stdout: 'pipe', stderr: 'pipe' },
+          )
           const exitCode = await proc.exited
-          return exitCode === 0
+          if (exitCode !== 0) {
+            return null
+          }
+          const stdoutStream = proc.stdout
+          if (!stdoutStream) {
+            return null
+          }
+          const stdout = await new Response(stdoutStream).text()
+          try {
+            return JSON.parse(stdout) as { title?: string; fulltitle?: string }
+          } catch {
+            return null
+          }
         },
-        catch: () => false,
+        catch: () => null,
       })
 
-      if (canDownload) {
-        const timestamp = Date.now()
+      if (metadata) {
+        const baseTitle = metadata.fulltitle || metadata.title || 'audio'
+        const slug = slugify(baseTitle) || 'audio'
+
         const tmpDir = path.join(process.cwd(), 'tmp')
-        const filename = `${timestamp}.mp3`
+        const filename = `${slug}.mp3`
         const localPath = path.join(tmpDir, filename)
 
         yield* localFs.makeDirectory(tmpDir, { recursive: true })
 
         yield* E.tryPromise({
           try: async () => {
-            const proc = spawn([
-              'yt-dlp',
-              '-x',
-              '--audio-format',
-              'mp3',
-              '-o',
-              localPath,
-              request.url,
-            ])
+            const proc = spawn(
+              [
+                'yt-dlp',
+                '-x',
+                '--audio-format',
+                'mp3',
+                '-o',
+                localPath,
+                '--',
+                request.url,
+              ],
+              { stdout: 'inherit', stderr: 'inherit' },
+            )
             const exitCode = await proc.exited
             if (exitCode !== 0) {
               throw new Error('Download failed')

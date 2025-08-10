@@ -2,7 +2,7 @@ import { FileSystem } from '@effect/platform'
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Layer } from 'effect'
 import { MediaStore } from '../../stores/media/media.store'
-import { makeTestLayer } from '../../test-utils'
+import { makeTestLayer } from '../../utils/test-utils'
 import { transcribeMediaEffect } from './transcribe-media.step'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({

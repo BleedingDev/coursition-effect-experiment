@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { makeTestLayer } from '../../test-utils'
+import { makeTestLayer } from '../../utils/test-utils'
 import { MediaStore } from './media.store'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
