@@ -42,6 +42,9 @@ catalogs:
       specifier: ^3.2.2
       version: 3.2.2
   types:
+    '@types/bun':
+      specifier: ^1.2.19
+      version: 1.2.19
     ts-patch:
       specifier: ^3.3.0
       version: 3.3.0
@@ -95,9 +98,6 @@ importers:
       '@typed/id':
         specifier: ^0.17.2
         version: 0.17.2(effect@3.16.3)
-      '@types/bun':
-        specifier: ^1.2.19
-        version: 1.2.19(@types/react@19.1.9)
       ai:
         specifier: 5.0.8
         version: 5.0.8(zod@3.25.56)
@@ -111,6 +111,9 @@ importers:
       '@effect/vitest':
         specifier: catalog:test
         version: 0.23.3(effect@3.16.3)(vitest@3.2.2)
+      '@types/bun':
+        specifier: catalog:types
+        version: 1.2.19(@types/react@19.1.9)
       '@vitest/ui':
         specifier: catalog:test
         version: 3.2.2(vitest@3.2.2)

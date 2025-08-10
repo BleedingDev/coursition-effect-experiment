@@ -32,7 +32,6 @@
     "@restatedev/restate-sdk": "^1.8.1",
     "@restatedev/restate-sdk-clients": "^1.8.1",
     "@typed/id": "^0.17.2",
-    "@types/bun": "^1.2.19",
     "ai": "5.0.8",
     "effect": "catalog:effect"
   },
@@ -40,6 +39,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:lint",
     "@effect/vitest": "catalog:test",
+    "@types/bun": "catalog:types",
     "@vitest/ui": "catalog:test",
     "ts-patch": "catalog:types",
     "typescript": "catalog:types",
