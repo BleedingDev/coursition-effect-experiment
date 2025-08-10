@@ -41,10 +41,9 @@ describe('JobsStore', () => {
           .pipe(E.exit)
 
         expect(Exit.isFailure(result)).toBe(true)
-        if (Exit.isFailure(result)) {
-          const error = getExitError(result)
-          expect(error?._tag).toBe('JobNotFoundError')
-        }
+        const error = getExitError(result)
+        expect(error?._tag).toBe('JobNotFoundError')
+        expect(error?.jobId).toBe('0bb4870a-09a9-4adc-8e86-0a024075756d')
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
   })
