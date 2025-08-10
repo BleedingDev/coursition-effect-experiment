@@ -1,9 +1,13 @@
 import * as restate from '@restatedev/restate-sdk'
+import { makeUuid4 } from '@typed/id'
 import { Effect as E, type Schema } from 'effect'
 import { downloadLinkStep } from 'src/steps/media/download-link.step.ts'
 import { persistSubtitlesStep } from 'src/steps/media/persist-subtitles.step.ts'
 import { transcribeMediaStep } from 'src/steps/media/transcribe-media.step.ts'
-import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
+import type {
+  RestateParsedMediaRequestType,
+  UnifiedMediaRequest,
+} from '../../domain/media/media.schema'
 import {
   WorkflowStore,
   executeStep,
@@ -16,7 +20,9 @@ export const startTranscribeProcessUsecase = (
 ) =>
   E.gen(function* () {
     const workflowStore = yield* WorkflowStore
+    const processId = yield* makeUuid4
     const result = yield* workflowStore.startProcess({
+      processId,
       processDefinition: transcribeWorkflowDefinition,
       props: request,
     })
@@ -33,31 +39,24 @@ export const startTranscribeProcessUsecase = (
     }),
   )
 
-export const transcribeWorkflowDefinition = restate.service({
+export const transcribeWorkflowDefinition = restate.workflow({
   name: 'transcribeWorkflow',
   handlers: {
-    process: async (
-      ctx: restate.Context,
-      props: { url: string; language: string },
+    run: async (
+      ctx: restate.WorkflowContext,
+      props: RestateParsedMediaRequestType,
     ) => {
-      const propsWithUrl = {
-        url: new URL(props.url),
-        language: props.language,
-      }
-      
-      // Should return a downloaded file
-      await executeStep(ctx, () => {
-        return downloadLinkStep(propsWithUrl)
-      })
+      const fileUrl = await executeStep(ctx, () => downloadLinkStep(props))
 
-      // Should return subtitles
-      await executeStep(ctx, () => {
-        return transcribeMediaStep(propsWithUrl)
-      })
+      const subtitlesJson = await executeStep(ctx, () =>
+        transcribeMediaStep(fileUrl.toString(), props.language),
+      )
 
-      await executeStep(ctx, () => {
-        return persistSubtitlesStep()
-      })
+      await executeStep(ctx, () =>
+        persistSubtitlesStep(JSON.stringify(subtitlesJson)),
+      )
+
+      return ctx.key
     },
   },
 })

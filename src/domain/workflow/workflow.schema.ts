@@ -1,15 +1,19 @@
-import type { Context, ServiceDefinition } from '@restatedev/restate-sdk'
+import type {
+  ServiceDefinition,
+  WorkflowContext,
+} from '@restatedev/restate-sdk'
 import { Schema } from 'effect'
 
 export const StartProcessResponse = Schema.Struct({
+  processId: Schema.UUID,
   response: Schema.Unknown,
 })
 
-export const ServiceDefinitionSchema = Schema.declare<
+export const WorkflowDefinitionSchema = Schema.declare<
   ServiceDefinition<
     string,
     {
-      process: (ctx: Context, args: any) => Promise<any>
+      run: (ctx: WorkflowContext, args: unknown) => Promise<unknown>
     }
   >
 >((input): input is ServiceDefinition<string, ''> => {
@@ -17,6 +21,7 @@ export const ServiceDefinitionSchema = Schema.declare<
 })
 
 export const StartProcessRequest = Schema.Struct({
-  processDefinition: ServiceDefinitionSchema,
+  processId: Schema.UUID,
+  processDefinition: WorkflowDefinitionSchema,
   props: Schema.Unknown,
 })

@@ -1,7 +1,7 @@
 import { Effect as E } from 'effect'
 import { JobsStore } from '../../stores/jobs/jobs.store'
 
-export const getJobByIdUsecase = (id: number) =>
+export const getJobByIdUsecase = (id: string) =>
   E.gen(function* () {
     const jobsStore = yield* JobsStore
     const result = yield* jobsStore.getJobById(id)

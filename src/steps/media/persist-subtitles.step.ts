@@ -1,9 +1,9 @@
 import { Effect as E } from 'effect'
 
-export const persistSubtitlesStep = () =>
+export const persistSubtitlesStep = (subtitlesJson: string) =>
   E.gen(function* () {
     // TODO: Implement the logic to persist gained subtitles
-    console.log('persistSubtitlesUsecase')
+    console.log('persistSubtitlesUsecase', subtitlesJson)
     return undefined
   }).pipe(
     E.tapError(E.logError),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { makeTestLayer } from '../../test-utils'
+import { makeTestLayer } from '../../utils/test-utils'
 import { MediaStore } from './media.store'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
@@ -19,11 +19,10 @@ describe('MediaStore', () => {
     it.effect('should parse media successfully', () =>
       E.gen(function* () {
         const store = yield* MediaStore
-        const request = {
-          url: 'https://example.com/video.mp4',
-          language: 'en',
-        }
-        const result = yield* store.parseMedia(request)
+        const result = yield* store.parseMedia(
+          new URL('https://example.com/video.mp4'),
+          'en-GB',
+        )
 
         expect(result.json).toHaveLength(3)
         expect(result.json[0]?.text).toBe('Hello world')
@@ -35,11 +34,10 @@ describe('MediaStore', () => {
     it.effect('should handle file upload request', () =>
       E.gen(function* () {
         const store = yield* MediaStore
-        const request = {
-          url: 'https://example.com/uploaded-file.mp4',
-          language: 'es',
-        }
-        const result = yield* store.parseMedia(request)
+        const result = yield* store.parseMedia(
+          new URL('https://example.com/uploaded-file.mp4'),
+          'es-ES',
+        )
 
         expect(result.json).toHaveLength(3)
         expect(result.json[0]?.start).toBe(0)

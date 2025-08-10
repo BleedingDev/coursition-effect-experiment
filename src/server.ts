@@ -9,6 +9,7 @@ import {
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import * as restate from '@restatedev/restate-sdk'
+import { GetRandomValues } from '@typed/id'
 import { Effect as E, Layer } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
@@ -18,7 +19,10 @@ import { getJobsHandler } from './handlers/jobs/get-jobs.handler'
 import { transcribeWorkflowHandler } from './handlers/media/transcribe-workflow.handler.ts'
 import { JobsStore } from './stores/jobs/jobs.store'
 import { MediaStore } from './stores/media/media.store'
-import { WorkflowStore } from './stores/workflow/workflow-store.ts'
+import {
+  RestateClientLive,
+  WorkflowStore,
+} from './stores/workflow/workflow-store.ts'
 import { transcribeWorkflowDefinition } from './usecases/media/transcribe-workflow.usecase.ts'
 
 const mediaGroupImplementation = HttpApiBuilder.group(
@@ -38,7 +42,12 @@ const ApiImplementation = HttpApiBuilder.api(api).pipe(
   Layer.provide(mediaGroupImplementation),
   Layer.provide(JobsStore.Default),
   Layer.provide(Layer.succeed(MediaStore, MediaStore.Deepgram)),
-  Layer.provide(Layer.succeed(WorkflowStore, WorkflowStore.RestateStore)),
+  Layer.provide(
+    Layer.mergeAll(
+      Layer.succeed(WorkflowStore, WorkflowStore.RestateStore),
+      RestateClientLive,
+    ),
+  ),
 )
 
 const ServerLayer = E.gen(function* () {
@@ -60,6 +69,7 @@ const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
   HttpServer.withLogAddress,
   Layer.provide(ServerLayer),
   Layer.provide(ApiImplementation),
+  Layer.provide(GetRandomValues.CryptoRandom),
 )
 
 BunRuntime.runMain(Layer.launch(HttpLive))
