@@ -42,7 +42,14 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
         try: () => clients.connect({ url: restateUrl.toString() }),
         catch: (error) =>
           new WorkflowConnectionError({ processId, cause: error }),
-      }).pipe(E.retry(Schedule.exponential('1 second', 2)))
+      }).pipe(
+        E.retry(
+          Schedule.exponential('1 second', 2).pipe(
+            Schedule.jittered,
+            Schedule.recurs(5),
+          ),
+        ),
+      )
 
       const workflow = rs.workflowClient(processDefinition, processId)
       const response = yield* E.tryPromise({
