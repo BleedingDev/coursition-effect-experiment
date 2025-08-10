@@ -2,7 +2,6 @@ import type * as restate from '@restatedev/restate-sdk'
 import * as clients from '@restatedev/restate-sdk-clients'
 import {
   Config,
-  type ConfigError,
   Context,
   Effect as E,
   Layer,
@@ -51,7 +50,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       request: StartProcessRequestType,
     ) => E.Effect<
       Schema.Schema.Type<typeof StartProcessResponse>,
-      WorkflowConnectionError | WorkflowCreationError | ConfigError.ConfigError,
+      WorkflowConnectionError | WorkflowCreationError,
       RestateClient
     >
   }
