@@ -1,14 +1,6 @@
 import { Schema } from 'effect'
 
-/**
- * Job status enum
- * pending: enqueued waiting for its turn
-ready: ready to be processed, but not yet running
-running: actively processing
-backing-off: retrying due to a failure
-suspended: waiting on some external input (e.g. request-response call, awakeable, sleep, ...)
-completed: completed (this is shown only for idempotent invocations)
- */
+// * Taken from Restate Docs - https://docs.restate.dev/operate/introspection/?interface=curl#retrieving-the-status-of-an-invocation
 const JobStatus = Schema.Literal(
   'pending',
   'ready',
