@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { MediaStore } from 'src/stores/media/media.store'
+import { MediaStore } from '../../stores/media/media.store'
 
 export const transcribeMediaEffect = (url: string, language?: string) =>
   Effect.gen(function* () {
