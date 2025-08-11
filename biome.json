@@ -32,7 +32,12 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.spec.ts"],
+      "includes": [
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "**/*.spec.tsx",
+        "**/*.test.tsx"
+      ],
       "javascript": {
         "globals": ["vitest", "describe", "it", "expect"]
       }
