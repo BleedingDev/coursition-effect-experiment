@@ -3,9 +3,9 @@ import { BunContext } from '@effect/platform-bun'
 import { spawn } from 'bun'
 import { Console, Effect } from 'effect'
 import { YtDlpDownloadError } from '../../domain/media/media.errors'
+import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
 import { S3Config, S3FileSystem, S3FileSystemLive } from '../../platform/s3-fs'
 import { slugify } from '../../utils/string'
-import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
 
 const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
   Effect.gen(function* () {
