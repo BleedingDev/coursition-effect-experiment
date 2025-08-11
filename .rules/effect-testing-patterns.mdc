@@ -634,14 +634,14 @@ describe('BlogStore', () => {
 ### Handler Testing Pattern
 ```typescript
 it('should return proper response', async () => {
-  const event = lambdaEvent()
+  const request = mockHttpRequest()
   const testStore = SearchStore.makeTestService({
-    getCategories: () => Effect.succeed(mockAlgoliaResponse),
+    getCategories: () => Effect.succeed(mockSearchResponse),
   })
 
-  const result = await toLambdaHandler(
+  const result = await toHttpHandler(
     _handler.pipe(Effect.provide(testStore))
-  )(event, lambdaContext, () => undefined)
+  )(request)
 
   expect(result?.statusCode).toBe(200)
   expect(JSON.parse(result?.body || '')).toEqual(expectedResponse)

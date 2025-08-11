@@ -14,9 +14,9 @@ See `.rules/imports-and-conventions.md` for import and naming conventions.
 ### Service Class Structure
 ```typescript
 export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
-  dependencies: [DynamoDBService, ConfigService],
+  dependencies: [DatabaseService, ConfigService],
   effect: Effect.gen(function* () {
-    const dynamodb = yield* DynamoDBService
+    const db = yield* DatabaseService
     const config = yield* ConfigService
 
     return {
@@ -34,7 +34,7 @@ export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
 ### Store Responsibilities
 - ✅ Data persistence and retrieval only
 - ✅ Schema encoding/decoding
-- ✅ External service integration (DynamoDB, Algolia, S3)
+- ✅ External service integration (Database, Search, Storage)
 - ✅ Return raw data without business logic processing
 - ❌ No pagination calculations or business logic
 
@@ -174,7 +174,7 @@ export class BlogPostConflictError extends Data.TaggedError('BlogPostConflictErr
 ### Error Handling in Layers
 ```typescript
 // Store: Convert external errors to domain errors
-const result = yield* dynamodb.get(params).pipe(
+const result = yield* db.get(params).pipe(
   Effect.catchTag('ItemNotFound', () =>
     new BlogPostNotFoundError({ id })
   )
@@ -242,7 +242,7 @@ export class MediaStore extends Context.Tag('MediaStore')<
 ### Dependency Flow
 - Handlers depend on Usecases
 - Usecases depend on Stores
-- Stores depend on external services (DynamoDB, Algolia, etc.)
+- Stores depend on external services (Database, Search, etc.)
 - Never skip layers or create circular dependencies
 
 ### Error Propagation

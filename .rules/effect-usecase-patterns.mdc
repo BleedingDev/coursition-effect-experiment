@@ -580,7 +580,7 @@ export const dislikeBlogPostUsecase = (input: LikeInput) =>
 - **HTTP Concerns**: No response formatting or status codes
 - **External Service Calls**: Use stores for external service integration
 - **Schema Encoding/Decoding**: Let stores handle data transformation
-- **Infrastructure Concerns**: No direct AWS SDK or external library usage
+- **Infrastructure Concerns**: No direct external SDK usage, use Effect services
 - **Excessive Logging**: Avoid verbose start/completion logging
 - **Large Object Serialization**: Don't JSON.stringify large objects in logs
 

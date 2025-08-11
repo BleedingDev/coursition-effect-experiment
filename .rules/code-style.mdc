@@ -60,9 +60,9 @@ const user = yield* userStore.getById(userId)
 
 ```typescript
 export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
-  dependencies: [DynamoDBService, ConfigService],
+  dependencies: [DatabaseService, ConfigService],
   effect: Effect.gen(function* () {
-    const dynamodb = yield* DynamoDBService
+    const db = yield* DatabaseService
     const config = yield* ConfigService
 
     return {

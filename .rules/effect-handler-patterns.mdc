@@ -1,9 +1,9 @@
 ---
 description:
-globs: **/lambdas/**/handler.ts,**/*-handler.ts
+globs: **/handlers/**/*.handler.ts,**/*-handler.ts
 alwaysApply: false
 ---
-# Effect-TS Lambda Handler Implementation Patterns and Best Practices
+# Effect-TS Handler Implementation Patterns and Best Practices
 
 ## Import Patterns
 
@@ -17,17 +17,15 @@ See `.rules/imports-and-conventions.md` for import and naming conventions.
 - This ensures clear ownership and easier maintenance
 
 ```
-src/lambdas/
-├── get-blog-by-id/
-│   ├── handler.ts
-│   ├── handler.test.ts
-│   ├── get-blog-by-id.usecase.ts
-│   └── get-blog-by-id.usecase.test.ts
-└── create-blog-post/
-    ├── handler.ts
-    ├── handler.test.ts
-    ├── create-blog-post.usecase.ts
-    └── create-blog-post.usecase.test.ts
+src/handlers/
+├── jobs/
+│   ├── get-job-by-id.handler.ts
+│   ├── get-job-by-id.handler.test.ts
+│   ├── get-jobs.handler.ts
+│   └── get-jobs.handler.test.ts
+└── media/
+    ├── transcribe-workflow.handler.ts
+    └── transcribe-workflow.handler.test.ts
 ```
 
 ### Usecase Import Pattern
@@ -86,32 +84,26 @@ export const _handler = (event: CustomEmailSenderTriggerEvent) =>
   )
 ```
 
-## Package Structure
+## Project Structure
 
-### API Package Structure
-- **NO index.ts file needed** in API packages (src/index.ts)
-- API packages are deployment artifacts, not libraries
-- Handlers are entry points, not exports
+### Handler Organization
+- Handlers are organized by feature/domain
+- Usecases are co-located with their handlers
+- Tests are co-located with implementation
 
 ```
-packages/blog-api/
-├── src/
-│   ├── config.ts
-│   ├── lib/
-│   ├── stores/
-│   └── lambdas/
-│       ├── get-blog-by-id/
-│       │   ├── handler.ts
-│       │   ├── handler.test.ts
-│       │   ├── get-blog-by-id.usecase.ts
-│       │   └── get-blog-by-id.usecase.test.ts
-│       └── create-blog-post/
-│           ├── handler.ts
-│           ├── handler.test.ts
-│           ├── create-blog-post.usecase.ts
-│           └── create-blog-post.usecase.test.ts
-├── package.json
-└── tsconfig.json
+src/
+├── config.ts
+├── domain/
+├── stores/
+├── usecases/
+├── handlers/
+│   ├── jobs/
+│   │   ├── get-job-by-id.handler.ts
+│   │   └── get-jobs.handler.ts
+│   └── media/
+│       └── transcribe-workflow.handler.ts
+└── server.ts
 ```
 
 ## Configuration Access in Handlers

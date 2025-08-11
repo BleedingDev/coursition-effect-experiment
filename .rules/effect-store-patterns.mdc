@@ -14,9 +14,9 @@ See `.rules/imports-and-conventions.md` for import and naming conventions.
 ### Service Class Structure
 ```typescript
 export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
-  dependencies: [DynamoDBDocument.layer({})],
+  dependencies: [DatabaseService],
   effect: Effect.gen(function* () {
-    const dynamodb = yield* DynamoDBService
+    const db = yield* DatabaseService
     
     return {
       create: (blogPost: BlogPost) => Effect.gen(function* () {
@@ -79,18 +79,18 @@ export const MockConfigLayer = Layer.setConfigProvider(mockConfigProvider)
 ### Using Configuration in Stores
 ```typescript
 export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
-  dependencies: [DynamoDBService],
+  dependencies: [DatabaseService],
   effect: Effect.gen(function* () {
-    const dynamodb = yield* DynamoDBService
+    const db = yield* DatabaseService
     const tableName = yield* envVars.BLOG_TABLE
     
     return {
       create: (blogPost: BlogPost) => Effect.gen(function* () {
         const encoded = yield* Schema.encode(BlogSchema)(blogPost)
-        yield* dynamodb.put({
-          TableName: tableName,
-          Item: encoded,
-          ConditionExpression: 'attribute_not_exists(PK)',
+        yield* db.insert({
+          table: tableName,
+          data: encoded,
+          onConflict: 'throw',
         })
         return blogPost
       }),
@@ -109,10 +109,10 @@ create: (blogPost: BlogPost) =>
     yield* Effect.logInfo('Creating blog post', { id: blogPost.id })
     
     const encoded = yield* Schema.encode(BlogSchema)(blogPost)
-    const result = yield* dynamodb.put({
-      TableName,
-      Item: encoded,
-      ConditionExpression: 'attribute_not_exists(PK)',
+    const result = yield* db.insert({
+      table: tableName,
+      data: encoded,
+      onConflict: 'throw',
     }).pipe(
       Effect.catchTag('ConditionalCheckFailedException', () =>
         new ConflictError({ resource: 'BlogPost', id: blogPost.id })
@@ -130,9 +130,9 @@ getById: (id: BlogPostId) =>
   Effect.gen(function* () {
     yield* Effect.logInfo('Getting blog post by ID', { id })
     
-    const result = yield* dynamodb.get({
-      TableName,
-      Key: { PK: id, SK: 'PROFILE' },
+    const result = yield* db.findById({
+      table: tableName,
+      id,
     })
     
     const item = yield* Effect.fromNullable(result.Item).pipe(
@@ -158,9 +158,9 @@ updateAttributes: (id: BlogPostId, updates: Partial<BlogPost>) =>
     const updated = { ...existing, ...updates, updatedAt: new Date() }
     const encoded = yield* Schema.encode(BlogSchema)(updated)
     
-    yield* dynamodb.put({
-      TableName,
-      Item: encoded,
+    yield* db.update({
+      table: tableName,
+      data: encoded,
     })
     
     yield* Effect.logInfo('Blog post updated successfully', { id })
@@ -174,10 +174,10 @@ delete: (id: BlogPostId) =>
   Effect.gen(function* () {
     yield* Effect.logInfo('Deleting blog post', { id })
     
-    yield* dynamodb.delete({
-      TableName,
-      Key: { PK: id, SK: 'PROFILE' },
-      ConditionExpression: 'attribute_exists(PK)',
+    yield* db.delete({
+      table: tableName,
+      id,
+      requireExists: true,
     }).pipe(
       Effect.catchTag('ConditionalCheckFailedException', () =>
         new NotFoundError({ resource: 'BlogPost', id })
@@ -197,13 +197,10 @@ getByAuthor: (authorId: string) =>
   Effect.gen(function* () {
     yield* Effect.logInfo('Getting blog posts by author', { authorId })
     
-    const result = yield* dynamodb.query({
-      TableName,
-      IndexName: 'GSI2',
-      KeyConditionExpression: 'GSI2PK = :authorId',
-      ExpressionAttributeValues: {
-        ':authorId': `AUTHOR#${authorId}`,
-      },
+    const result = yield* db.query({
+      table: tableName,
+      index: 'author-index',
+      where: { authorId },
     })
     
     const items = result.Items || []
@@ -252,7 +249,7 @@ searchForHits: (query: string, page: number, limit: number) =>
 
 ### Convert External Errors to Domain Errors
 ```typescript
-// DynamoDB errors
+// Database errors
 .pipe(
   Effect.catchTag('ConditionalCheckFailedException', () =>
     new ConflictError({ resource: 'BlogPost', id })
@@ -262,9 +259,9 @@ searchForHits: (query: string, page: number, limit: number) =>
   )
 )
 
-// S3 errors
+// Storage errors
 .pipe(
-  Effect.catchTag('NoSuchKey', () =>
+  Effect.catchTag('FileNotFound', () =>
     new NotFoundError({ resource: 'File', id: key })
   )
 )
@@ -281,7 +278,7 @@ yield* Effect.logInfo('Operation started', {
 })
 
 // Log intermediate steps
-yield* Effect.logInfo('DynamoDB operation completed', { 
+yield* Effect.logInfo('Database operation completed', { 
   tableName: TableName,
   operation: 'put',
   itemId: blogPost.id 
@@ -344,7 +341,7 @@ const testStore = BlogStore.makeTestService({
 ### ✅ What Stores Should Do
 - Data persistence and retrieval operations
 - Schema encoding/decoding between domain and storage formats
-- External service integration (DynamoDB, Algolia, S3, etc.)
+- External service integration (Database, Search, Storage, etc.)
 - Convert external errors to domain errors
 - Structured logging of data operations
 - Return raw data without business logic processing

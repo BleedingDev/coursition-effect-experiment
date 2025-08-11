@@ -295,7 +295,7 @@ static makeTestService = (
 
 ### Validation Checklist
 When adding/updating a client, verify:
-- [ ] All handlers from `packages/{service}-api/src/lambdas/` are covered
+- [ ] All handlers from `src/handlers/` are covered
 - [ ] HTTP methods match handler implementations
 - [ ] Request parameters are correctly encoded
 - [ ] Response types are correctly decoded
