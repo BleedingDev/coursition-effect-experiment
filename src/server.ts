@@ -6,8 +6,8 @@ import {
   HttpMiddleware,
   HttpServer,
 } from '@effect/platform'
-import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
+import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as restate from '@restatedev/restate-sdk'
 import { GetRandomValues } from '@typed/id'
 import { Effect, Layer } from 'effect'

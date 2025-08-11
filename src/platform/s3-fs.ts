@@ -1,7 +1,7 @@
 import type { FileSystem } from '@effect/platform'
 import { SystemError } from '@effect/platform/Error'
 import { Size } from '@effect/platform/FileSystem'
-import { S3Client, file, write } from 'bun'
+import { file, S3Client, write } from 'bun'
 import { Config, Context, Effect, Layer, Option, Stream } from 'effect'
 
 const LEADING_SLASH = /^\//

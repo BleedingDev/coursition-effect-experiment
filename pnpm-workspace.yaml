@@ -8,13 +8,13 @@ onlyBuiltDependencies:
 catalogs:
   # Effect-TS ecosystem packages - runtime dependencies
   effect:
-    "@effect/experimental": ^0.48.7
-    "@effect/language-service": ^0.19.0
-    "@effect/opentelemetry": ^0.50.6
-    "@effect/platform": ^0.84.6
-    "@effect/platform-bun": ^0.69.4
+    "@effect/experimental": ^0.54.5
+    "@effect/language-service": ^0.35.2
+    "@effect/opentelemetry": ^0.56.1
+    "@effect/platform": ^0.90.2
+    "@effect/platform-bun": ^0.78.0
     "@typed/id": ^0.17.2
-    "effect": ^3.16.3
+    "effect": ^3.17.7
   
   # AI and ML packages
   ai:
@@ -22,9 +22,9 @@ catalogs:
     "@ai-sdk/deepgram": 1.0.1
     "@ai-sdk/elevenlabs": 1.0.1
     "@ai-sdk/gladia": 1.0.1
-    "@ai-sdk/groq": 2.0.4
-    "@ai-sdk/openai": 2.0.7
-    "ai": 5.0.8
+    "@ai-sdk/groq": 2.0.5
+    "@ai-sdk/openai": 2.0.10
+    "ai": 5.0.10
   
   # Core packages
   core:
@@ -33,17 +33,17 @@ catalogs:
 
   # Testing framework and utilities
   test:
-    "@effect/vitest": ^0.23.3
-    "@vitest/ui": ^3.2.2
-    "vitest": ^3.2.2
+    "@effect/vitest": ^0.25.0
+    "@vitest/ui": ^3.2.4
+    "vitest": ^3.2.4
 
   # Linting and formatting tools
   lint:
-    "ultracite": 4.2.8
-    "@biomejs/biome": 1.9.4
+    "ultracite": 5.1.2
+    "@biomejs/biome": 2.1.4
 
   # Types and TypeScript compiler
   types:
-    "typescript": ^5.8.3
+    "typescript": ^5.9.2
     "ts-patch": ^3.3.0
     "@types/bun": ^1.2.20

@@ -1,12 +1,13 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
   "extends": ["ultracite"],
   "files": {
-    "ignore": [
-      "**/node_modules/**/*",
-      "**/migrations/**/*",
-      "**/.next/**/*",
-      ".vscode/README.md"
+    "includes": [
+      "**",
+      "!**/node_modules/**/*",
+      "!**/migrations/**/*",
+      "!**/.next/**/*",
+      "!**/.vscode/README.md"
     ]
   },
   "vcs": {
@@ -17,7 +18,8 @@
   },
   "linter": {
     "rules": {
-      "nursery": {
+      "nursery": {},
+      "style": {
         "noNestedTernary": "off"
       }
     }
@@ -30,7 +32,7 @@
   },
   "overrides": [
     {
-      "include": ["*.spec.ts"],
+      "includes": ["**/*.spec.ts"],
       "javascript": {
         "globals": ["vitest", "describe", "it", "expect"]
       }

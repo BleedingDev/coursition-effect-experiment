@@ -10,8 +10,8 @@ const MediaStoreTestLayer = makeTestLayer(MediaStore)({
     Effect.succeed({
       json: [
         { start: 0, end: 5000, text: 'Hello world' },
-        { start: 5000, end: 10000, text: 'This is a test' },
-        { start: 10000, end: 15000, text: 'Sub parsing complete' },
+        { start: 5000, end: 10_000, text: 'This is a test' },
+        { start: 10_000, end: 15_000, text: 'Sub parsing complete' },
       ],
     }),
 }).pipe(Layer.merge(FileSystem.layerNoop({})))
@@ -27,7 +27,7 @@ describe('parseMediaUsecase', () => {
       expect(result.json).toHaveLength(3)
       expect(result.json[0]?.text).toBe('Hello world')
       expect(result.json[1]?.start).toBe(5000)
-      expect(result.json[2]?.end).toBe(15000)
+      expect(result.json[2]?.end).toBe(15_000)
     }).pipe(Effect.provide(MediaStoreTestLayer)),
   )
 })
