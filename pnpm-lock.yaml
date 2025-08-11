@@ -5,6 +5,35 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
+  ai:
+    '@ai-sdk/assemblyai':
+      specifier: 1.0.1
+      version: 1.0.1
+    '@ai-sdk/deepgram':
+      specifier: 1.0.1
+      version: 1.0.1
+    '@ai-sdk/elevenlabs':
+      specifier: 1.0.1
+      version: 1.0.1
+    '@ai-sdk/gladia':
+      specifier: 1.0.1
+      version: 1.0.1
+    '@ai-sdk/groq':
+      specifier: 2.0.4
+      version: 2.0.4
+    '@ai-sdk/openai':
+      specifier: 2.0.7
+      version: 2.0.7
+    ai:
+      specifier: 5.0.8
+      version: 5.0.8
+  core:
+    '@restatedev/restate-sdk':
+      specifier: ^1.8.1
+      version: 1.8.1
+    '@restatedev/restate-sdk-clients':
+      specifier: ^1.8.1
+      version: 1.8.1
   effect:
     '@effect/experimental':
       specifier: ^0.48.7
@@ -21,6 +50,9 @@ catalogs:
     '@effect/platform-bun':
       specifier: ^0.69.4
       version: 0.69.4
+    '@typed/id':
+      specifier: ^0.17.2
+      version: 0.17.2
     effect:
       specifier: ^3.16.3
       version: 3.16.3
@@ -57,22 +89,22 @@ importers:
   .:
     dependencies:
       '@ai-sdk/assemblyai':
-        specifier: 1.0.1
+        specifier: catalog:ai
         version: 1.0.1(zod@3.25.56)
       '@ai-sdk/deepgram':
-        specifier: 1.0.1
+        specifier: catalog:ai
         version: 1.0.1(zod@3.25.56)
       '@ai-sdk/elevenlabs':
-        specifier: 1.0.1
+        specifier: catalog:ai
         version: 1.0.1(zod@3.25.56)
       '@ai-sdk/gladia':
-        specifier: 1.0.1
+        specifier: catalog:ai
         version: 1.0.1(zod@3.25.56)
       '@ai-sdk/groq':
-        specifier: 2.0.4
+        specifier: catalog:ai
         version: 2.0.4(zod@3.25.56)
       '@ai-sdk/openai':
-        specifier: 2.0.7
+        specifier: catalog:ai
         version: 2.0.7(zod@3.25.56)
       '@effect/experimental':
         specifier: catalog:effect
@@ -90,16 +122,16 @@ importers:
         specifier: catalog:effect
         version: 0.69.4(@effect/cluster@0.30.10(@effect/platform@0.84.6(effect@3.16.3))(@effect/rpc@0.56.8(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/sql@0.33.20(@effect/experimental@0.48.7(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(@effect/rpc@0.56.8(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/sql@0.33.20(@effect/experimental@0.48.7(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(@effect/platform@0.84.6(effect@3.16.3))(effect@3.16.3))(effect@3.16.3)
       '@restatedev/restate-sdk':
-        specifier: ^1.8.1
+        specifier: catalog:core
         version: 1.8.1
       '@restatedev/restate-sdk-clients':
-        specifier: ^1.8.1
+        specifier: catalog:core
         version: 1.8.1
       '@typed/id':
-        specifier: ^0.17.2
+        specifier: catalog:effect
         version: 0.17.2(effect@3.16.3)
       ai:
-        specifier: 5.0.8
+        specifier: catalog:ai
         version: 5.0.8(zod@3.25.56)
       effect:
         specifier: catalog:effect
