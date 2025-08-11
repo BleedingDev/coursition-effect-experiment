@@ -4,7 +4,7 @@ import {
   Config,
   type ConfigError,
   Context,
-  Effect as E,
+  Effect,
   Redacted,
   type Schema,
 } from 'effect'
@@ -20,18 +20,21 @@ export class MediaStore extends Context.Tag('MediaStore')<
     readonly parseMedia: (
       media: URL,
       language?: string,
-    ) => E.Effect<
+    ) => Effect.Effect<
       Schema.Schema.Type<typeof MediaResponse>,
       MediaParsingError | MediaClientError | ConfigError.ConfigError
     >
   }
 >() {
   static Deepgram = MediaStore.of({
-    parseMedia: E.fn('parse-media')(function* (media: URL, language = 'en-GB') {
-      yield* E.annotateCurrentSpan('request', media)
+    parseMedia: Effect.fn('parse-media')(function* (
+      media: URL,
+      language = 'en-GB',
+    ) {
+      yield* Effect.annotateCurrentSpan('request', media)
 
       const apiKey = yield* Config.redacted('DEEPGRAM_API_KEY')
-      const client = yield* E.try({
+      const client = yield* Effect.try({
         try: () =>
           createDeepgram({
             apiKey: Redacted.value(apiKey),
@@ -39,7 +42,7 @@ export class MediaStore extends Context.Tag('MediaStore')<
         catch: (error) => new MediaClientError({ source: 'deepgram', error }),
       })
 
-      const result = yield* E.tryPromise({
+      const result = yield* Effect.tryPromise({
         try: () => {
           return transcribe({
             model: client.transcription('nova-2'),
@@ -53,7 +56,7 @@ export class MediaStore extends Context.Tag('MediaStore')<
         },
         catch: (error) => new MediaParsingError({ source: 'ai-sdk', error }),
       })
-      yield* E.annotateCurrentSpan('result', result)
+      yield* Effect.annotateCurrentSpan('result', result)
 
       return MediaResponse.make({
         json: result.segments.map((segment) => ({

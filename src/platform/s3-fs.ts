@@ -2,7 +2,7 @@ import type { FileSystem } from '@effect/platform'
 import { SystemError } from '@effect/platform/Error'
 import { Size } from '@effect/platform/FileSystem'
 import { S3Client, file, write } from 'bun'
-import { Config, Context, Effect as E, Layer, Option, Stream } from 'effect'
+import { Config, Context, Effect, Layer, Option, Stream } from 'effect'
 
 const LEADING_SLASH = /^\//
 
@@ -28,7 +28,7 @@ export const makeS3FileSystem = (
 
   return {
     access: (path: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: async () => {
           const exists = await file(toS3Url(path)).exists()
           if (!exists) {
@@ -47,7 +47,7 @@ export const makeS3FileSystem = (
     },
 
     exists: (path: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => file(toS3Url(path)).exists(),
         catch: (error) =>
           new SystemError({
@@ -57,11 +57,11 @@ export const makeS3FileSystem = (
             pathOrDescriptor: path,
             cause: error,
           }),
-      }).pipe(E.catchAll(() => E.succeed(false)))
+      }).pipe(Effect.catchAll(() => Effect.succeed(false)))
     },
 
     readFile: (path: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => file(toS3Url(path)).bytes(),
         catch: (error) =>
           new SystemError({
@@ -75,7 +75,7 @@ export const makeS3FileSystem = (
     },
 
     readFileString: (path: string, _encoding?: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => file(toS3Url(path)).text(),
         catch: (error) =>
           new SystemError({
@@ -93,7 +93,7 @@ export const makeS3FileSystem = (
       data: Uint8Array,
       _options?: FileSystem.WriteFileOptions,
     ) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => write(toS3Url(path), data),
         catch: (error) =>
           new SystemError({
@@ -103,7 +103,7 @@ export const makeS3FileSystem = (
             pathOrDescriptor: path,
             cause: error,
           }),
-      }).pipe(E.asVoid)
+      }).pipe(Effect.asVoid)
     },
 
     writeFileString: (
@@ -111,7 +111,7 @@ export const makeS3FileSystem = (
       data: string,
       _options?: FileSystem.WriteFileOptions,
     ) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => write(toS3Url(path), data),
         catch: (error) =>
           new SystemError({
@@ -121,11 +121,11 @@ export const makeS3FileSystem = (
             pathOrDescriptor: path,
             cause: error,
           }),
-      }).pipe(E.asVoid)
+      }).pipe(Effect.asVoid)
     },
 
     remove: (path: string, options?: { recursive?: boolean }) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: async () => {
           if (options?.recursive && path.endsWith('/')) {
             if (!client) {
@@ -153,7 +153,7 @@ export const makeS3FileSystem = (
     },
 
     copyFile: (from: string, to: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () => write(toS3Url(to), file(toS3Url(from))),
         catch: (error) =>
           new SystemError({
@@ -163,12 +163,12 @@ export const makeS3FileSystem = (
             pathOrDescriptor: from,
             cause: error,
           }),
-      }).pipe(E.asVoid)
+      }).pipe(Effect.asVoid)
     },
 
     rename: (from: string, to: string) => {
-      return E.gen(function* () {
-        yield* E.tryPromise({
+      return Effect.gen(function* () {
+        yield* Effect.tryPromise({
           try: async () => {
             await write(toS3Url(to), file(toS3Url(from)))
             await file(toS3Url(from)).delete()
@@ -186,7 +186,7 @@ export const makeS3FileSystem = (
     },
 
     stat: (path: string) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: async () => {
           const f = file(toS3Url(path))
           const exists = await f.exists()
@@ -223,7 +223,7 @@ export const makeS3FileSystem = (
     },
 
     readDirectory: (path: string, _options?: { recursive?: boolean }) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: async () => {
           if (!client) {
             throw new Error('S3Client required for listing')
@@ -249,7 +249,7 @@ export const makeS3FileSystem = (
       _path: string,
       _options?: { recursive?: boolean; mode?: number },
     ) => {
-      return E.void
+      return Effect.void
     },
 
     stream: (path: string, _options?: FileSystem.StreamOptions) => {
@@ -284,7 +284,7 @@ export const makeS3FileSystem = (
     },
 
     copy: (_from: string, _to: string) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -294,7 +294,7 @@ export const makeS3FileSystem = (
       )
     },
     chmod: (_path: string, _mode: number) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -304,7 +304,7 @@ export const makeS3FileSystem = (
       )
     },
     chown: (_path: string, _uid: number, _gid: number) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -314,7 +314,7 @@ export const makeS3FileSystem = (
       )
     },
     link: (_from: string, _to: string) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -324,7 +324,7 @@ export const makeS3FileSystem = (
       )
     },
     symlink: (_from: string, _to: string) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -334,7 +334,7 @@ export const makeS3FileSystem = (
       )
     },
     readLink: (_path: string) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -344,10 +344,10 @@ export const makeS3FileSystem = (
       )
     },
     realPath: (path: string) => {
-      return E.succeed(path)
+      return Effect.succeed(path)
     },
     truncate: (_path: string, _length?: FileSystem.SizeInput) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -357,7 +357,7 @@ export const makeS3FileSystem = (
       )
     },
     utimes: (_path: string, _atime: Date | number, _mtime: Date | number) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -367,7 +367,7 @@ export const makeS3FileSystem = (
       )
     },
     watch: (_path: string) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -377,7 +377,7 @@ export const makeS3FileSystem = (
       )
     },
     makeTempDirectory: (_options?: FileSystem.MakeTempDirectoryOptions) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -389,7 +389,7 @@ export const makeS3FileSystem = (
     makeTempDirectoryScoped: (
       _options?: FileSystem.MakeTempDirectoryOptions,
     ) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -399,7 +399,7 @@ export const makeS3FileSystem = (
       )
     },
     makeTempFile: (_options?: FileSystem.MakeTempFileOptions) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -409,7 +409,7 @@ export const makeS3FileSystem = (
       )
     },
     makeTempFileScoped: (_options?: FileSystem.MakeTempFileOptions) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -419,7 +419,7 @@ export const makeS3FileSystem = (
       )
     },
     open: (_path: string, _options?: FileSystem.OpenFileOptions) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -429,7 +429,7 @@ export const makeS3FileSystem = (
       )
     },
     sink: (_path: string, _options?: FileSystem.SinkOptions) => {
-      return E.fail(
+      return Effect.fail(
         new SystemError({
           reason: 'Unknown',
           module: 'FileSystem',
@@ -454,7 +454,7 @@ export const makePublicS3FileSystem = (
       data: Uint8Array,
       _options?: FileSystem.WriteFileOptions,
     ) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () =>
           client.write(path.replace(LEADING_SLASH, ''), data, {
             acl: 'public-read',
@@ -467,14 +467,14 @@ export const makePublicS3FileSystem = (
             pathOrDescriptor: path,
             cause: error,
           }),
-      }).pipe(E.asVoid)
+      }).pipe(Effect.asVoid)
     },
     writeFileString: (
       path: string,
       data: string,
       _options?: FileSystem.WriteFileOptions,
     ) => {
-      return E.tryPromise({
+      return Effect.tryPromise({
         try: () =>
           client.write(path.replace(LEADING_SLASH, ''), data, {
             acl: 'public-read',
@@ -487,14 +487,14 @@ export const makePublicS3FileSystem = (
             pathOrDescriptor: path,
             cause: error,
           }),
-      }).pipe(E.asVoid)
+      }).pipe(Effect.asVoid)
     },
   }
 }
 
 export const S3FileSystemLive = Layer.effect(
   S3FileSystem,
-  E.gen(function* () {
+  Effect.gen(function* () {
     const config = yield* S3Config
     const client = new S3Client({
       bucket: config.bucket,

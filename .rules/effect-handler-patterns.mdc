@@ -21,7 +21,7 @@ import { getBlogByIdUsecase } from './usecase.js'
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPostId } from '@t6c/domain-common'
 import { okResponse, toHandler } from '@t6c/lib-api'
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases
 import { BlogStore } from 'src/stores/blog/blog.store.js'
@@ -66,41 +66,41 @@ import { getBlogByIdUsecase } from '../../usecases/get-blog-by-id.usecase.js'
  * HTTP_METHOD /api/path
  */
 export const _handler = schemaInputMethod(InputSchema).pipe(
-  E.flatMap(usecaseFunction),
-  E.flatMap(responseFunction),
-  E.tapError(E.logError),
-  E.catchTags({
+  Effect.flatMap(usecaseFunction),
+  Effect.flatMap(responseFunction),
+  Effect.tapError(Effect.logError),
+  Effect.catchTags({
     ParseError: (error) => badRequestResponse(error.message),
     NotFoundError: () => notFoundResponse(),
     ConflictError: (error) => conflictResponse(error.message),
   }),
-  E.orDie,
-  E.withSpan('handler-name'),
+  Effect.orDie,
+  Effect.withSpan('handler-name'),
 )
 
 export const handler = _handler.pipe(
-  E.provide(RequiredStore.Default),
-  E.withSpan('handler-name-full'),
+  Effect.provide(RequiredStore.Default),
+  Effect.withSpan('handler-name-full'),
   toHandler,
 )
 ```
 
 ### Handler with Co-located Usecase
 ```typescript
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 import { KeyDecryptor } from '../../lib/index.js'
 import { sendCustomMessageUsecase } from './send-custom-message.usecase.js'
 
 export const _handler = (event: CustomEmailSenderTriggerEvent) =>
-  E.gen(function* () {
-    yield* E.logInfo('Handler started', { /* context */ })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Handler started', { /* context */ })
     const result = yield* sendCustomMessageUsecase(event)
-    yield* E.logInfo('Handler completed successfully')
+    yield* Effect.logInfo('Handler completed successfully')
     return result
   }).pipe(
-    E.tapError(E.logError),
-    E.withSpan('handler-name'),
-    E.annotateLogs({ handler: 'handler-name' }),
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('handler-name'),
+    Effect.annotateLogs({ handler: 'handler-name' }),
   )
 ```
 
@@ -145,14 +145,14 @@ const tableName = process.env.BLOG_TABLE
 
 // ✅ CORRECT - Configuration through services
 export const _handler = schemaInput(InputSchema).pipe(
-  E.flatMap(usecase), // usecase accesses config through stores
-  E.flatMap(okResponse),
+  Effect.flatMap(usecase), // usecase accesses config through stores
+  Effect.flatMap(okResponse),
   // ...
 )
 
 // Services handle configuration
 export const handler = _handler.pipe(
-  E.provide(BlogStore.Default), // BlogStore uses config.ts
+  Effect.provide(BlogStore.Default), // BlogStore uses config.ts
   toHandler,
 )
 ```
@@ -163,7 +163,7 @@ export const handler = _handler.pipe(
 ```typescript
 // Using predefined schema
 export const _handler = schemaPathParams(IdSchema).pipe(
-  E.flatMap(({ id }) => usecase(BlogPostId.make(id))),
+  Effect.flatMap(({ id }) => usecase(BlogPostId.make(id))),
   // ... rest of handler
 )
 
@@ -174,7 +174,7 @@ const PathParamsSchema = Schema.Struct({
 })
 
 export const _handler = schemaPathParams(PathParamsSchema).pipe(
-  E.flatMap(({ slug, authorId }) =>
+  Effect.flatMap(({ slug, authorId }) =>
     usecase(Slug.make(slug), UserId.make(authorId))
   ),
   // ... rest of handler
@@ -184,7 +184,7 @@ export const _handler = schemaPathParams(PathParamsSchema).pipe(
 ### Query Parameters
 ```typescript
 export const _handler = schemaQueryParams(GetBlogPageInput).pipe(
-  E.flatMap(getBlogPageUsecase),
+  Effect.flatMap(getBlogPageUsecase),
   // ... rest of handler
 )
 
@@ -192,7 +192,7 @@ export const _handler = schemaQueryParams(GetBlogPageInput).pipe(
 export const _handler = schemaQueryParams(SearchParamsSchema, {
   errors: 'all',
 }).pipe(
-  E.flatMap(searchUsecase),
+  Effect.flatMap(searchUsecase),
   // ... rest of handler
 )
 ```
@@ -200,8 +200,8 @@ export const _handler = schemaQueryParams(SearchParamsSchema, {
 ### Request Body
 ```typescript
 export const _handler = schemaBodyJson(CreateBlogPostInput).pipe(
-  E.flatMap(createBlogPostUsecase),
-  E.flatMap(createdResponse),
+  Effect.flatMap(createBlogPostUsecase),
+  Effect.flatMap(createdResponse),
   // ... rest of handler
 )
 ```
@@ -211,22 +211,22 @@ export const _handler = schemaBodyJson(CreateBlogPostInput).pipe(
 ### Success Responses
 ```typescript
 // 200 OK with data
-E.flatMap(okResponse)
+Effect.flatMap(okResponse)
 
 // 201 Created with data
-E.flatMap(createdResponse)
+Effect.flatMap(createdResponse)
 
 // 204 No Content (for void operations)
-E.asVoid,
-E.flatMap(okResponse)
+Effect.asVoid,
+Effect.flatMap(okResponse)
 
 // 204 Deleted
-E.flatMap(deletedResponse)
+Effect.flatMap(deletedResponse)
 ```
 
 ### Error Response Mapping
 ```typescript
-E.catchTags({
+Effect.catchTags({
   // 400 Bad Request
   ParseError: (error) => badRequestResponse(error.message),
 
@@ -244,7 +244,7 @@ E.catchTags({
 ### Single Service
 ```typescript
 export const handler = _handler.pipe(
-  E.provide(BlogStore.Default),
+  Effect.provide(BlogStore.Default),
   toHandler,
 )
 ```
@@ -252,9 +252,9 @@ export const handler = _handler.pipe(
 ### Multiple Services
 ```typescript
 export const handler = _handler.pipe(
-  E.provide(BlogStore.Default),
-  E.provide(SearchStore.Default),
-  E.provide(AlgoliaLive),
+  Effect.provide(BlogStore.Default),
+  Effect.provide(SearchStore.Default),
+  Effect.provide(AlgoliaLive),
   toHandler,
 )
 ```
@@ -264,14 +264,14 @@ export const handler = _handler.pipe(
 ### Standard Error Handling
 ```typescript
 export const _handler = schemaInput(InputSchema).pipe(
-  E.flatMap(usecase),
-  E.flatMap(okResponse),
-  E.tapError(E.logError),           // Always log errors
-  E.catchTags({                     // Map domain errors to HTTP responses
+  Effect.flatMap(usecase),
+  Effect.flatMap(okResponse),
+  Effect.tapError(Effect.logError),           // Always log errors
+  Effect.catchTags({                     // Map domain errors to HTTP responses
     ParseError: (error) => badRequestResponse(error.message),
     NotFoundError: () => notFoundResponse(),
   }),
-  E.orDie,                          // Crash on unhandled errors
-  E.withSpan('handler-name'),       // Add tracing span
+  Effect.orDie,                          // Crash on unhandled errors
+  Effect.withSpan('handler-name'),       // Add tracing span
 )
 ```

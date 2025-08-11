@@ -138,7 +138,7 @@ As the AI assistant, I have the **authority and responsibility** to automaticall
 
 ### Example Communication
 ```
-"I've updated the effect-testing-patterns rule with the cleaner error testing pattern we just discovered. This .pipe(E.exit) approach is much more readable than the nested E.exit(E.gen(...)) pattern."
+"I've updated the effect-testing-patterns rule with the cleaner error testing pattern we just discovered. This .pipe(Effect.exit) approach is much more readable than the nested Effect.exit(Effect.gen(...)) pattern."
 ```
 
 ## Authority Scope

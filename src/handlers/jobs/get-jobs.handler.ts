@@ -1,8 +1,8 @@
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 import { getJobsUsecase } from '../../usecases/jobs/get-jobs.usecase'
 
 export const getJobsHandler = () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* getJobsUsecase()
     return result
-  }).pipe(E.tapError(E.logError), E.withSpan('getJobsHandler'))
+  }).pipe(Effect.tapError(Effect.logError), Effect.withSpan('getJobsHandler'))

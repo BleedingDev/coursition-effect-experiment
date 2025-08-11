@@ -22,7 +22,7 @@ import { getBlogByIdUsecase } from './usecase.js'
 
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases
 import { BlogStore } from 'src/stores/blog/blog.store.js'
@@ -76,17 +76,17 @@ const user = yield* userStore.getById(userId)
 - Provide `makeTestService` for testing
 
 ```typescript
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
   dependencies: [DynamoDBService, ConfigService],
-  effect: E.gen(function* () {
+  effect: Effect.gen(function* () {
     const dynamodb = yield* DynamoDBService
     const config = yield* ConfigService
 
     return {
-      create: (blogPost: BlogPost) => E.gen(function* () {
+      create: (blogPost: BlogPost) => Effect.gen(function* () {
         // Implementation
       }),
-      getById: (id: BlogPostId) => E.gen(function* () {
+      getById: (id: BlogPostId) => Effect.gen(function* () {
         // Implementation
       }),
     }
@@ -97,30 +97,30 @@ export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
   ) =>
     Layer.succeed(BlogStore, {
       _tag: 'BlogStore',
-      create: () => E.die('Not implemented' as const),
-      getById: () => E.die('Not implemented' as const),
+      create: () => Effect.die('Not implemented' as const),
+      getById: () => Effect.die('Not implemented' as const),
       ...mockImplementation,
     })
 }
 ```
 
 ### Effect Generator Functions
-- Use `E.gen(function* () {})` for complex flows
+- Use `Effect.gen(function* () {})` for complex flows
 - Yield effects directly without helper functions
 - Use `yield*` for effects that return values
 
 ```typescript
 // ✅ CORRECT
 const usecase = (id: BlogPostId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const result = yield* blogStore.getById(id)
     return result
-  }).pipe(E.tapError, E.withSpan('my-usecase-name', { attributes: { id }}))
+  }).pipe(Effect.tapError, Effect.withSpan('my-usecase-name', { attributes: { id }}))
 
 // ❌ WRONG - Don't use helper functions like _()
 const usecase = (id: BlogPostId) =>
-  E.gen(function* (_) {
+  Effect.gen(function* (_) {
     const blogStore = yield* _(BlogStore)
     const result = yield* _(blogStore.getById(id))
     return result
@@ -132,7 +132,7 @@ const usecase = (id: BlogPostId) =>
 ### Tagged Errors
 - Use `Data.Tagged` for domain errors
 - Create specific error types for different failure cases
-- Handle errors explicitly with `E.catchTags`
+- Handle errors explicitly with `Effect.catchTags`
 
 ```typescript
 // Error definition
@@ -142,7 +142,7 @@ export class NotFoundError extends Data.TaggedError('NotFoundError')<{
 }> {}
 
 // Error handling
-E.catchTags({
+Effect.catchTags({
   NotFoundError: (error) => notFoundResponse(error.message),
   ConflictError: (error) => conflictResponse(error.message),
 })
@@ -157,8 +157,8 @@ E.catchTags({
 
 ```typescript
 // ✅ CORRECT
-yield* E.logInfo('Creating blog post', { id: blogPost.id, title: blogPost.title })
-yield* E.logError('Failed to create blog post', { error, id: blogPost.id })
+yield* Effect.logInfo('Creating blog post', { id: blogPost.id, title: blogPost.title })
+yield* Effect.logError('Failed to create blog post', { error, id: blogPost.id })
 
 // ❌ WRONG
 console.log('Creating blog post', blogPost.id)
@@ -170,7 +170,7 @@ console.log('Creating blog post', blogPost.id)
 - Use descriptive span names
 
 ```typescript
-E.withSpan('BlogStore.create', {
+Effect.withSpan('BlogStore.create', {
   attributes: { id: blogPost.id, authorId: blogPost.authorId }
 })
 ```
@@ -198,16 +198,16 @@ E.withSpan('BlogStore.create', {
 
 ```typescript
 // Schema definition
-export const BlogSchema = S.Struct({
+export const BlogSchema = Schema.Struct({
   id: BlogPostId,
-  title: S.String,
-  content: S.String,
+  title: Schema.String,
+  content: Schema.String,
   authorId: UserId,
-  createdAt: S.Date,
+  createdAt: Schema.Date,
 })
 
 // Usage
-const decoded = yield* S.decodeUnknown(BlogSchema)(rawData)
+const decoded = yield* Schema.decodeUnknown(BlogSchema)(rawData)
 ```
 
 ### Branded Types
@@ -215,8 +215,8 @@ const decoded = yield* S.decodeUnknown(BlogSchema)(rawData)
 - Create factory functions with validation
 
 ```typescript
-export const BlogPostId = S.String.pipe(S.brand('BlogPostId'))
-export type BlogPostId = S.Schema.Type<typeof BlogPostId>
+export const BlogPostId = Schema.String.pipe(Schema.brand('BlogPostId'))
+export type BlogPostId = Schema.Schema.Type<typeof BlogPostId>
 ```
 
 ## Configuration Management
@@ -249,8 +249,8 @@ export const MockConfigLayer = Layer.setConfigProvider(mockConfigProvider)
 ### Configuration Access Pattern
 ```typescript
 // ✅ CORRECT - Access config through Effect system
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
-  effect: E.gen(function* () {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
+  effect: Effect.gen(function* () {
     const tableName = yield* envVars.BLOG_TABLE
     const apiKey = yield* envVars.USER_SERVICE_API_KEY
     // Use configuration values...
@@ -270,9 +270,9 @@ const tableName = process.env.BLOG_TABLE
 
 ```typescript
 const result = yield* blogStore.getById(id).pipe(
-  E.flatMap((blog) => enrichBlogPost(blog)),
-  E.map((enriched) => formatResponse(enriched)),
-  E.withSpan('get-blog-enriched'),
+  Effect.flatMap((blog) => enrichBlogPost(blog)),
+  Effect.map((enriched) => formatResponse(enriched)),
+  Effect.withSpan('get-blog-enriched'),
 )
 ```
 
@@ -288,15 +288,15 @@ const result = yield* blogStore.getById(id).pipe(
 
 ```typescript
 export const myUsecase = (input: MyInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     // Business logic implementation here...
     const result = yield* businessLogic(input)
     return result
   }).pipe(
     // 🔴 MANDATORY: Simple error logging
-    E.tapError(E.logError),
+    Effect.tapError(Effect.logError),
     // 🔴 MANDATORY: Observability span with relevant attributes
-    E.withSpan('my-usecase-name', {
+    Effect.withSpan('my-usecase-name', {
       attributes: { id: input.id } // Include relevant attributes
     })
   )
@@ -313,13 +313,13 @@ export const myUsecase = (input: MyInput) =>
 import { describe, expect, it } from '@effect/vitest'
 
 it.effect('should create blog post', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const result = yield* blogStore.create(mockBlogPost)
     expect(result.id).toBe(mockBlogPost.id)
   }).pipe(
-    E.provide(BlogStore.makeTestService({
-      create: () => E.succeed(mockBlogPost),
+    Effect.provide(BlogStore.makeTestService({
+      create: () => Effect.succeed(mockBlogPost),
     }))
   )
 )

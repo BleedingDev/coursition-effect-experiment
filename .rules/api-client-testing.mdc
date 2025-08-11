@@ -10,7 +10,7 @@ alwaysApply: false
 ```typescript
 import { describe, expect, it } from '@effect/vitest'
 import { FetchHttpClientTest, getExitError } from '@t6c/lib-api'
-import { Effect as E, Exit } from 'effect'
+import { Effect, Exit } from 'effect'
 import { MockConfigLayer } from '../config.js'
 ```
 
@@ -19,19 +19,19 @@ import { MockConfigLayer } from '../config.js'
 ### Success Test Pattern
 ```typescript
 it.effect('should [action description]', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* ServiceName
     const result = yield* service.methodName(params)
 
     expect(result).toEqual(expectedResult)
   }).pipe(
-    E.provide(ServiceName.DefaultWithoutDependencies),
-    E.provide(
+    Effect.provide(ServiceName.DefaultWithoutDependencies),
+    Effect.provide(
       FetchHttpClientTest(
         new Response(JSON.stringify(mockResponse), { status: 200 }),
       ),
     ),
-    E.provide(MockConfigLayer),
+    Effect.provide(MockConfigLayer),
   ),
 )
 ```
@@ -39,19 +39,19 @@ it.effect('should [action description]', () =>
 ### Error Test Pattern (PREFERRED)
 ```typescript
 it.effect('should handle [error type]', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* ServiceName
     const result = yield* service
       .methodName(params)
-      .pipe(E.exit)
+      .pipe(Effect.exit)
 
     expect(Exit.isFailure(result)).toBe(true)
     const error = getExitError(result)
     expect(error?._tag).toBe('ExpectedErrorType')
   }).pipe(
-    E.provide(ServiceName.DefaultWithoutDependencies),
-    E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
-    E.provide(MockConfigLayer),
+    Effect.provide(ServiceName.DefaultWithoutDependencies),
+    Effect.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+    Effect.provide(MockConfigLayer),
   ),
 )
 ```
@@ -67,28 +67,28 @@ it.effect('should handle [error type]', () =>
 it.effect('should update resource', () => {
   const updatedResource = { ...mockResource, field: 'new value' }
   
-  return E.gen(function* () {
+  return Effect.gen(function* () {
     const service = yield* ServiceName
     const result = yield* service.update(id, updates)
     expect(result).toEqual(updatedResource)
   }).pipe(
-    E.provide(ServiceName.DefaultWithoutDependencies),
-    E.provide(
+    Effect.provide(ServiceName.DefaultWithoutDependencies),
+    Effect.provide(
       FetchHttpClientTest(
         new Response(JSON.stringify(updatedResource), { status: 200 }),
       ),
     ),
-    E.provide(MockConfigLayer),
+    Effect.provide(MockConfigLayer),
   )
 })
 
 // ❌ WRONG - Variable not accessible in FetchHttpClientTest
 it.effect('should update resource', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const updatedResource = { /* ... */ } // Scoping issue!
     // ...
   }).pipe(
-    E.provide(
+    Effect.provide(
       FetchHttpClientTest(
         new Response(JSON.stringify(updatedResource), { status: 200 }), // Error!
       ),
@@ -162,8 +162,8 @@ Always provide layers in this order:
 ## Error Testing Best Practices
 
 ### Use Clean Exit Pattern
-- Use `.pipe(E.exit)` directly on service calls
-- Avoid nested `E.exit(E.gen(...))` patterns
+- Use `.pipe(Effect.exit)` directly on service calls
+- Avoid nested `Effect.exit(Effect.gen(...))` patterns
 - Keep layer provision at test level
 
 ### Error Assertions
@@ -183,7 +183,7 @@ expect(error?.message).toContain('expected text')
 ```typescript
 // Test with explicit parameters
 it.effect('should work with params', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* ServiceName
     const result = yield* service.method({ page: 1, limit: 10 })
     expect(result).toEqual(mockResponse)
@@ -192,7 +192,7 @@ it.effect('should work with params', () =>
 
 // Test with default parameters
 it.effect('should work with defaults', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* ServiceName
     const result = yield* service.method() // No params
     expect(result).toEqual(mockResponse)
@@ -203,13 +203,13 @@ it.effect('should work with defaults', () =>
 ### Testing Void Operations
 ```typescript
 it.effect('should perform void operation', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* ServiceName
     yield* service.voidMethod(params) // No return value expected
   }).pipe(
-    E.provide(ServiceName.DefaultWithoutDependencies),
-    E.provide(FetchHttpClientTest(new Response(null, { status: 200 }))),
-    E.provide(MockConfigLayer),
+    Effect.provide(ServiceName.DefaultWithoutDependencies),
+    Effect.provide(FetchHttpClientTest(new Response(null, { status: 200 }))),
+    Effect.provide(MockConfigLayer),
   ),
 )
 ```

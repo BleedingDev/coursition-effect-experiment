@@ -1,4 +1,4 @@
-import { Effect as E, Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 import { envVars } from '../../config'
 import {
   JobNotFoundError,
@@ -10,13 +10,13 @@ import {
   JobsResponse,
 } from '../../domain/jobs/jobs.schema'
 
-export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
-  effect: E.gen(function* () {
+export class JobsStore extends Effect.Service<JobsStore>()('JobsStore', {
+  effect: Effect.gen(function* () {
     const tableName = yield* envVars.JOBS_TABLE
 
     return {
       getAllJobs: () =>
-        E.succeed(
+        Effect.succeed(
           JobsResponse.make({
             jobs: [
               {
@@ -37,16 +37,16 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
             ],
           }),
         ).pipe(
-          E.withSpan('JobsStore.getAllJobs', {
+          Effect.withSpan('JobsStore.getAllJobs', {
             attributes: { tableName },
           }),
         ),
 
       getJobById: (id: string) =>
-        E.gen(function* () {
+        Effect.gen(function* () {
           // Mock implementation - replace with real database lookup
           if (id === '0bb4870a-09a9-4adc-8e86-0a024075756d') {
-            return yield* E.fail(new JobNotFoundError({ jobId: id }))
+            return yield* Effect.fail(new JobNotFoundError({ jobId: id }))
           }
 
           return JobResponse.make({
@@ -55,19 +55,19 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
             status: 'running',
           })
         }).pipe(
-          E.withSpan('JobsStore.getJobById', {
+          Effect.withSpan('JobsStore.getJobById', {
             attributes: { id, tableName },
           }),
         ),
 
       getJobResult: (jobId: string) =>
-        E.gen(function* () {
+        Effect.gen(function* () {
           const jobsStore = yield* JobsStore
           const job = yield* jobsStore.getJobById(jobId)
 
           // Check if job has results
           if (job.status !== 'completed') {
-            return yield* E.fail(new JobResultNotFoundError({ jobId }))
+            return yield* Effect.fail(new JobResultNotFoundError({ jobId }))
           }
 
           return JobResultResponse.make({
@@ -75,7 +75,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
             result: `Result for job ${jobId}`,
           })
         }).pipe(
-          E.withSpan('JobsStore.getJobResult', {
+          Effect.withSpan('JobsStore.getJobResult', {
             attributes: { jobId, tableName },
           }),
         ),
@@ -87,9 +87,9 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
   ) =>
     Layer.succeed(JobsStore, {
       _tag: 'JobsStore',
-      getAllJobs: () => E.die('Not implemented' as const),
-      getJobById: () => E.die('Not implemented' as const),
-      getJobResult: () => E.die('Not implemented' as const),
+      getAllJobs: () => Effect.die('Not implemented' as const),
+      getJobById: () => Effect.die('Not implemented' as const),
+      getJobResult: () => Effect.die('Not implemented' as const),
       ...mockImplementation,
     })
 }

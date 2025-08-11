@@ -1,14 +1,14 @@
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 
 export const persistSubtitlesStep = (subtitlesJson: string) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     // TODO: Implement the logic to persist gained subtitles
-    console.log('persistSubtitlesUsecase', subtitlesJson)
+    yield* Effect.log('persistSubtitlesUsecase', { subtitlesJson })
     return undefined
   }).pipe(
-    E.tapError(E.logError),
-    E.orDie, // Die on any unexpected errors
-    E.withSpan('persistSubtitlesUsecase', {
+    Effect.tapError(Effect.logError),
+    Effect.orDie, // Die on any unexpected errors
+    Effect.withSpan('persistSubtitlesUsecase', {
       attributes: {},
     }),
   )

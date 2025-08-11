@@ -1,13 +1,13 @@
 import { FileSystem } from '@effect/platform'
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 import { MediaStore } from '../../stores/media/media.store'
 import { makeTestLayer } from '../../utils/test-utils'
 import { transcribeMediaEffect } from './transcribe-media.step'
 
 const MediaStoreTestLayer = makeTestLayer(MediaStore)({
   parseMedia: () =>
-    E.succeed({
+    Effect.succeed({
       json: [
         { start: 0, end: 5000, text: 'Hello world' },
         { start: 5000, end: 10000, text: 'This is a test' },
@@ -18,7 +18,7 @@ const MediaStoreTestLayer = makeTestLayer(MediaStore)({
 
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const result = yield* transcribeMediaEffect(
         'https://example.com/video.mp4',
         'en-GB',
@@ -28,6 +28,6 @@ describe('parseMediaUsecase', () => {
       expect(result.json[0]?.text).toBe('Hello world')
       expect(result.json[1]?.start).toBe(5000)
       expect(result.json[2]?.end).toBe(15000)
-    }).pipe(E.provide(MediaStoreTestLayer)),
+    }).pipe(Effect.provide(MediaStoreTestLayer)),
   )
 })

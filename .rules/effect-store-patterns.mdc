@@ -20,7 +20,7 @@ import { ConfigService } from '../../config/config-service.js'
 
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect as E, Context } from 'effect'
+import { Effect, Context } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases
 import { BlogSchema } from 'src/stores/blog/schema/blog-schema.js'
@@ -30,16 +30,16 @@ import { BlogSchema } from 'src/stores/blog/schema/blog-schema.js'
 
 ### Service Class Structure
 ```typescript
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
   dependencies: [DynamoDBDocument.layer({})],
-  effect: E.gen(function* () {
+  effect: Effect.gen(function* () {
     const dynamodb = yield* DynamoDBService
     
     return {
-      create: (blogPost: BlogPost) => E.gen(function* () {
+      create: (blogPost: BlogPost) => Effect.gen(function* () {
         // Implementation
       }),
-      getById: (id: BlogPostId) => E.gen(function* () {
+      getById: (id: BlogPostId) => Effect.gen(function* () {
         // Implementation  
       }),
     }
@@ -50,8 +50,8 @@ export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
   ) =>
     Layer.succeed(BlogStore, {
       _tag: 'BlogStore',
-      create: () => E.die('Not implemented' as const),
-      getById: () => E.die('Not implemented' as const),
+      create: () => Effect.die('Not implemented' as const),
+      getById: () => Effect.die('Not implemented' as const),
       ...mockImplementation,
     })
 }
@@ -95,15 +95,15 @@ export const MockConfigLayer = Layer.setConfigProvider(mockConfigProvider)
 
 ### Using Configuration in Stores
 ```typescript
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
   dependencies: [DynamoDBService],
-  effect: E.gen(function* () {
+  effect: Effect.gen(function* () {
     const dynamodb = yield* DynamoDBService
     const tableName = yield* envVars.BLOG_TABLE
     
     return {
-      create: (blogPost: BlogPost) => E.gen(function* () {
-        const encoded = yield* S.encode(BlogSchema)(blogPost)
+      create: (blogPost: BlogPost) => Effect.gen(function* () {
+        const encoded = yield* Schema.encode(BlogSchema)(blogPost)
         yield* dynamodb.put({
           TableName: tableName,
           Item: encoded,
@@ -122,88 +122,88 @@ export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
 ```typescript
 // CREATE - Insert new record
 create: (blogPost: BlogPost) =>
-  E.gen(function* () {
-    yield* E.logInfo('Creating blog post', { id: blogPost.id })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Creating blog post', { id: blogPost.id })
     
-    const encoded = yield* S.encode(BlogSchema)(blogPost)
+    const encoded = yield* Schema.encode(BlogSchema)(blogPost)
     const result = yield* dynamodb.put({
       TableName,
       Item: encoded,
       ConditionExpression: 'attribute_not_exists(PK)',
     }).pipe(
-      E.catchTag('ConditionalCheckFailedException', () =>
+      Effect.catchTag('ConditionalCheckFailedException', () =>
         new ConflictError({ resource: 'BlogPost', id: blogPost.id })
       )
     )
     
-    yield* E.logInfo('Blog post created successfully', { id: blogPost.id })
+    yield* Effect.logInfo('Blog post created successfully', { id: blogPost.id })
     return blogPost
   }).pipe(
-    E.withSpan('BlogStore.create', { attributes: { id: blogPost.id } })
+    Effect.withSpan('BlogStore.create', { attributes: { id: blogPost.id } })
   ),
 
 // READ - Get by ID
 getById: (id: BlogPostId) =>
-  E.gen(function* () {
-    yield* E.logInfo('Getting blog post by ID', { id })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Getting blog post by ID', { id })
     
     const result = yield* dynamodb.get({
       TableName,
       Key: { PK: id, SK: 'PROFILE' },
     })
     
-    const item = yield* E.fromNullable(result.Item).pipe(
-      E.catchTag('NoSuchElementException', () =>
+    const item = yield* Effect.fromNullable(result.Item).pipe(
+      Effect.catchTag('NoSuchElementException', () =>
         new NotFoundError({ resource: 'BlogPost', id })
       )
     )
     
-    const decoded = yield* S.decodeUnknown(BlogSchema)(item)
+    const decoded = yield* Schema.decodeUnknown(BlogSchema)(item)
     
-    yield* E.logInfo('Blog post retrieved successfully', { id })
+    yield* Effect.logInfo('Blog post retrieved successfully', { id })
     return decoded
   }).pipe(
-    E.withSpan('BlogStore.getById', { attributes: { id } })
+    Effect.withSpan('BlogStore.getById', { attributes: { id } })
   ),
 
 // UPDATE - Patch existing record
 updateAttributes: (id: BlogPostId, updates: Partial<BlogPost>) =>
-  E.gen(function* () {
-    yield* E.logInfo('Updating blog post attributes', { id, updates })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Updating blog post attributes', { id, updates })
     
     const existing = yield* getById(id)
     const updated = { ...existing, ...updates, updatedAt: new Date() }
-    const encoded = yield* S.encode(BlogSchema)(updated)
+    const encoded = yield* Schema.encode(BlogSchema)(updated)
     
     yield* dynamodb.put({
       TableName,
       Item: encoded,
     })
     
-    yield* E.logInfo('Blog post updated successfully', { id })
+    yield* Effect.logInfo('Blog post updated successfully', { id })
     return updated
   }).pipe(
-    E.withSpan('BlogStore.updateAttributes', { attributes: { id } })
+    Effect.withSpan('BlogStore.updateAttributes', { attributes: { id } })
   ),
 
 // DELETE - Remove record
 delete: (id: BlogPostId) =>
-  E.gen(function* () {
-    yield* E.logInfo('Deleting blog post', { id })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Deleting blog post', { id })
     
     yield* dynamodb.delete({
       TableName,
       Key: { PK: id, SK: 'PROFILE' },
       ConditionExpression: 'attribute_exists(PK)',
     }).pipe(
-      E.catchTag('ConditionalCheckFailedException', () =>
+      Effect.catchTag('ConditionalCheckFailedException', () =>
         new NotFoundError({ resource: 'BlogPost', id })
       )
     )
     
-    yield* E.logInfo('Blog post deleted successfully', { id })
+    yield* Effect.logInfo('Blog post deleted successfully', { id })
   }).pipe(
-    E.withSpan('BlogStore.delete', { attributes: { id } })
+    Effect.withSpan('BlogStore.delete', { attributes: { id } })
   ),
 ```
 
@@ -211,8 +211,8 @@ delete: (id: BlogPostId) =>
 ```typescript
 // Query with GSI
 getByAuthor: (authorId: string) =>
-  E.gen(function* () {
-    yield* E.logInfo('Getting blog posts by author', { authorId })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Getting blog posts by author', { authorId })
     
     const result = yield* dynamodb.query({
       TableName,
@@ -224,15 +224,15 @@ getByAuthor: (authorId: string) =>
     })
     
     const items = result.Items || []
-    const decoded = yield* E.forEach(items, S.decodeUnknown(BlogSchema))
+    const decoded = yield* Effect.forEach(items, Schema.decodeUnknown(BlogSchema))
     
-    yield* E.logInfo('Blog posts retrieved by author', { 
+    yield* Effect.logInfo('Blog posts retrieved by author', { 
       authorId, 
       count: decoded.length 
     })
     return decoded
   }).pipe(
-    E.withSpan('BlogStore.getByAuthor', { attributes: { authorId } })
+    Effect.withSpan('BlogStore.getByAuthor', { attributes: { authorId } })
   ),
 ```
 
@@ -240,8 +240,8 @@ getByAuthor: (authorId: string) =>
 ```typescript
 // Algolia integration
 searchForHits: (query: string, page: number, limit: number) =>
-  E.gen(function* () {
-    yield* E.logInfo('Searching Algolia for hits', { query, page, limit })
+  Effect.gen(function* () {
+    yield* Effect.logInfo('Searching Algolia for hits', { query, page, limit })
     
     const result = yield* algoliaClient.search({
       indexName: 'blog_posts',
@@ -250,7 +250,7 @@ searchForHits: (query: string, page: number, limit: number) =>
       page: page - 1, // Algolia is 0-indexed
     })
     
-    yield* E.logInfo('Algolia search completed', { 
+    yield* Effect.logInfo('Algolia search completed', { 
       query, 
       hits: result.hits.length,
       nbHits: result.nbHits 
@@ -259,7 +259,7 @@ searchForHits: (query: string, page: number, limit: number) =>
     // Return raw Algolia response - let usecase handle pagination logic
     return result
   }).pipe(
-    E.withSpan('BlogStore.searchForHits', { 
+    Effect.withSpan('BlogStore.searchForHits', { 
       attributes: { query, page, limit } 
     })
   ),
@@ -271,17 +271,17 @@ searchForHits: (query: string, page: number, limit: number) =>
 ```typescript
 // DynamoDB errors
 .pipe(
-  E.catchTag('ConditionalCheckFailedException', () =>
+  Effect.catchTag('ConditionalCheckFailedException', () =>
     new ConflictError({ resource: 'BlogPost', id })
   ),
-  E.catchTag('ResourceNotFoundException', () =>
+  Effect.catchTag('ResourceNotFoundException', () =>
     new NotFoundError({ resource: 'Table', id: TableName })
   )
 )
 
 // S3 errors
 .pipe(
-  E.catchTag('NoSuchKey', () =>
+  Effect.catchTag('NoSuchKey', () =>
     new NotFoundError({ resource: 'File', id: key })
   )
 )
@@ -292,20 +292,20 @@ searchForHits: (query: string, page: number, limit: number) =>
 ### Structured Logging
 ```typescript
 // Log inputs
-yield* E.logInfo('Operation started', { 
+yield* Effect.logInfo('Operation started', { 
   operation: 'create',
   input: JSON.stringify(input, null, 2) 
 })
 
 // Log intermediate steps
-yield* E.logInfo('DynamoDB operation completed', { 
+yield* Effect.logInfo('DynamoDB operation completed', { 
   tableName: TableName,
   operation: 'put',
   itemId: blogPost.id 
 })
 
 // Log outputs
-yield* E.logInfo('Operation completed successfully', { 
+yield* Effect.logInfo('Operation completed successfully', { 
   operation: 'create',
   result: { id: blogPost.id, title: blogPost.title }
 })
@@ -314,7 +314,7 @@ yield* E.logInfo('Operation completed successfully', {
 ### Spans for Tracing
 ```typescript
 .pipe(
-  E.withSpan('BlogStore.methodName', { 
+  Effect.withSpan('BlogStore.methodName', { 
     attributes: { 
       id,
       operation: 'create',
@@ -334,12 +334,12 @@ static makeTestService = (
   Layer.succeed(BlogStore, {
     _tag: 'BlogStore',
     // Default implementations that fail
-    create: () => E.die('Not implemented' as const),
-    getById: () => E.die('Not implemented' as const),
-    updateAttributes: () => E.die('Not implemented' as const),
-    delete: () => E.die('Not implemented' as const),
-    getByAuthor: () => E.die('Not implemented' as const),
-    searchForHits: () => E.die('Not implemented' as const),
+    create: () => Effect.die('Not implemented' as const),
+    getById: () => Effect.die('Not implemented' as const),
+    updateAttributes: () => Effect.die('Not implemented' as const),
+    delete: () => Effect.die('Not implemented' as const),
+    getByAuthor: () => Effect.die('Not implemented' as const),
+    searchForHits: () => Effect.die('Not implemented' as const),
     // Override with provided implementations
     ...mockImplementation,
   })
@@ -348,10 +348,10 @@ static makeTestService = (
 ### Test Usage
 ```typescript
 const testStore = BlogStore.makeTestService({
-  create: () => E.succeed(mockBlogPost1),
+  create: () => Effect.succeed(mockBlogPost1),
   getById: (id) => 
     id === 'existing-id' 
-      ? E.succeed(mockBlogPost1)
+      ? Effect.succeed(mockBlogPost1)
       : new NotFoundError({ resource: 'BlogPost', id }),
 })
 ```

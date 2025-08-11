@@ -1,13 +1,6 @@
 import type * as restate from '@restatedev/restate-sdk'
 import * as clients from '@restatedev/restate-sdk-clients'
-import {
-  Config,
-  Context,
-  Effect as E,
-  Layer,
-  Schedule,
-  type Schema,
-} from 'effect'
+import { Config, Context, Effect, Layer, Schedule, type Schema } from 'effect'
 import {
   type WorkflowConnectionError,
   WorkflowCreationError,
@@ -26,17 +19,17 @@ export class RestateClient extends Context.Tag('RestateClient')<
 
 export const RestateClientLive = Layer.effect(
   RestateClient,
-  E.gen(function* () {
+  Effect.gen(function* () {
     const restateUrl = yield* Config.url('RESTATE_URL')
 
-    const client = yield* E.try({
+    const client = yield* Effect.try({
       try: () => clients.connect({ url: restateUrl.toString() }),
       catch: (error) => new Error(`Failed to connect to Restate: ${error}`),
     }).pipe(
-      E.retry(
+      Effect.retry(
         Schedule.union(Schedule.exponential('1 second', 2), Schedule.recurs(5)),
       ),
-      E.tap(() => E.log('Successfully connected to Restate')),
+      Effect.tap(() => Effect.log('Successfully connected to Restate')),
     )
 
     return client
@@ -48,7 +41,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
   {
     readonly startProcess: (
       request: StartProcessRequestType,
-    ) => E.Effect<
+    ) => Effect.Effect<
       Schema.Schema.Type<typeof StartProcessResponse>,
       WorkflowConnectionError | WorkflowCreationError,
       RestateClient
@@ -56,7 +49,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
   }
 >() {
   static RestateStore = WorkflowStore.of({
-    startProcess: E.fn('start-process')(function* ({
+    startProcess: Effect.fn('start-process')(function* ({
       processId,
       processDefinition,
       props,
@@ -64,7 +57,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
       const rs = yield* RestateClient
 
       const workflow = rs.workflowClient(processDefinition, processId)
-      const response = yield* E.tryPromise({
+      const response = yield* Effect.tryPromise({
         try: () =>
           // biome-ignore lint/suspicious/noExplicitAny: // TODO: Not sure why does Restate say it is never.
           (workflow as any).workflowSubmit(props),
@@ -82,7 +75,7 @@ export class WorkflowStore extends Context.Tag('WorkflowStore')<
 
 export async function executeStep<A, E>(
   ctx: restate.Context,
-  execFn: () => E.Effect<A, E, never>,
+  execFn: () => Effect.Effect<A, E, never>,
 ): Promise<A> {
-  return ctx.run(() => E.runPromise(execFn()))
+  return ctx.run(() => Effect.runPromise(execFn()))
 }

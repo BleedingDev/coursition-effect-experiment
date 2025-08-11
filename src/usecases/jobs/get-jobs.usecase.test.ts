@@ -1,33 +1,33 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 import { MockConfigLayer } from '../../config'
 import { JobsStore } from '../../stores/jobs/jobs.store'
 import { getJobsUsecase } from './get-jobs.usecase'
 
 describe('getJobsUsecase', () => {
   it.effect('should return jobs list', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const result = yield* getJobsUsecase()
 
       expect(result.jobs).toHaveLength(3)
       expect(result.jobs[0]?.name).toBe('Parse Video 1')
       expect(result.jobs[1]?.name).toBe('Parse Audio 2')
       expect(result.jobs[2]?.name).toBe('Parse Document 3')
-    }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
+    }).pipe(Effect.provide(JobsStore.Default), Effect.provide(MockConfigLayer)),
   )
 
   it.effect('should work with test service', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const result = yield* getJobsUsecase()
 
       expect(result.jobs).toHaveLength(2)
       expect(result.jobs[0]?.name).toBe('Test Job 1')
       expect(result.jobs[1]?.status).toBe('completed')
     }).pipe(
-      E.provide(
+      Effect.provide(
         JobsStore.makeTestService({
           getAllJobs: () =>
-            E.succeed({
+            Effect.succeed({
               jobs: [
                 {
                   id: 'e2fd39c8-0324-4c91-bd01-d94509aad7c1',
@@ -43,7 +43,7 @@ describe('getJobsUsecase', () => {
             }),
         }),
       ),
-      E.provide(MockConfigLayer),
+      Effect.provide(MockConfigLayer),
     ),
   )
 })

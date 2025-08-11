@@ -1,16 +1,16 @@
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 import { JobNotFound } from '../../domain/jobs/jobs.errors'
 import { getJobByIdUsecase } from '../../usecases/jobs/get-job-by-id.usecase'
 
 export const getJobByIdHandler = (id: string) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* getJobByIdUsecase(id)
     return result
   }).pipe(
-    E.catchTags({
+    Effect.catchTags({
       // Map internal errors to API errors
       JobNotFoundError: () => new JobNotFound(),
     }),
-    E.tapError(E.logError),
-    E.withSpan('getJobByIdHandler', { attributes: { jobId: id } }),
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('getJobByIdHandler', { attributes: { jobId: id } }),
   )

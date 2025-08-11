@@ -16,11 +16,11 @@ Guidelines for creating and maintaining API clients that communicate with backen
 
 ```typescript
 // ✅ CORRECT - Dedicated client for blog API
-export class BlogPostService extends E.Service<BlogPostService>()(
+export class BlogPostService extends Effect.Service<BlogPostService>()(
   '@web/BlogPostService',
   {
     dependencies: [FetchHttpClient.layer],
-    effect: E.gen(function* () {
+    effect: Effect.gen(function* () {
       const client = yield* createHttpClient({
         url: envVars.BLOG_SERVICE_URL,
         apiKey: envVars.BLOG_SERVICE_API_KEY,
@@ -121,8 +121,8 @@ like: (blogPostId: BlogPostId, userId: UserId) =>
 ```typescript
 // ✅ CORRECT - Query parameters with schema encoding
 getPage: (params: GetBlogPageInput) =>
-  S.encode(GetBlogPageInput)(params).pipe(
-    E.flatMap((urlParams) =>
+  Schema.encode(GetBlogPageInput)(params).pipe(
+    Effect.flatMap((urlParams) =>
       HttpClientRequest.get('/v1/blog').pipe(
         HttpClientRequest.setUrlParams(urlParams),
         client.execute,
@@ -168,14 +168,14 @@ createDraft: ({ authorId }: { authorId: UserId }) =>
 getById: (blogPostId: string) =>
   HttpClientRequest.get(`/v1/blog/${blogPostId}`).pipe(
     client.execute,
-    E.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
+    Effect.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
     // ...
   ),
 
 // ✅ CORRECT - Paginated response
 getPage: (params: GetBlogPageInput) =>
   // ... request setup
-  E.flatMap(
+  Effect.flatMap(
     HttpClientResponse.schemaBodyJson(PaginationSchema(BlogPost)),
   ),
   // ...
@@ -183,7 +183,7 @@ getPage: (params: GetBlogPageInput) =>
 
 #### Error Handling
 - **ALWAYS** handle 404 errors appropriately
-- Use `E.catchIf` for specific error conditions
+- Use `Effect.catchIf` for specific error conditions
 - Convert HTTP errors to domain errors when appropriate
 
 ```typescript
@@ -191,9 +191,9 @@ getPage: (params: GetBlogPageInput) =>
 getById: (blogPostId: string) =>
   HttpClientRequest.get(`/v1/blog/${blogPostId}`).pipe(
     client.execute,
-    E.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
-    E.scoped,
-    E.catchIf(
+    Effect.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
+    Effect.scoped,
+    Effect.catchIf(
       (error) =>
         error._tag === 'ResponseError' && error.response.status === 404,
       () => new NotFoundError({ resource: 'BlogPost', id: blogPostId }),
@@ -206,7 +206,7 @@ getById: (blogPostId: string) =>
 
 ### Mandatory Logging
 - **ALWAYS** log successful responses for debugging
-- **ALWAYS** log errors using `E.tapError(E.logError)`
+- **ALWAYS** log errors using `Effect.tapError(Effect.logError)`
 - **ALWAYS** add tracing spans with relevant attributes
 
 ```typescript
@@ -214,16 +214,16 @@ getById: (blogPostId: string) =>
 getById: (blogPostId: string) =>
   HttpClientRequest.get(`/v1/blog/${blogPostId}`).pipe(
     client.execute,
-    E.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
-    E.scoped,
-    E.catchIf(
+    Effect.flatMap(HttpClientResponse.schemaBodyJson(BlogPost)),
+    Effect.scoped,
+    Effect.catchIf(
       (error) =>
         error._tag === 'ResponseError' && error.response.status === 404,
       () => new NotFoundError({ resource: 'BlogPost', id: blogPostId }),
     ),
-    E.tap((res) => E.logInfo('getById res', JSON.stringify(res))),
-    E.tapError(E.logError),
-    E.withSpan('get-blog-post-by-id', {
+    Effect.tap((res) => Effect.logInfo('getById res', JSON.stringify(res))),
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('get-blog-post-by-id', {
       attributes: {
         blogPostId,
       },
@@ -238,15 +238,15 @@ getById: (blogPostId: string) =>
 
 ```typescript
 // ✅ CORRECT - Span naming
-E.withSpan('get-blog-post-by-id', {
+Effect.withSpan('get-blog-post-by-id', {
   attributes: { blogPostId },
 }),
 
-E.withSpan('search-blog-post', {
+Effect.withSpan('search-blog-post', {
   attributes: { input },
 }),
 
-E.withSpan('update-blog-post-attributes', {
+Effect.withSpan('update-blog-post-attributes', {
   attributes: { blogPostId, patches },
 }),
 ```
@@ -293,9 +293,9 @@ static makeTestService = (
 ) =>
   Layer.succeed(this, {
     _tag: '@web/BlogPostService',
-    createDraft: () => E.die('Not implemented' as const),
-    getPage: () => E.die('Not implemented' as const),
-    getById: () => E.die('Not implemented' as const),
+    createDraft: () => Effect.die('Not implemented' as const),
+    getPage: () => Effect.die('Not implemented' as const),
+    getById: () => Effect.die('Not implemented' as const),
     // ... all methods with defaults
     ...mockImplementation,
   })
@@ -323,7 +323,7 @@ When adding/updating a client, verify:
 ## Common Patterns
 
 ### Void Responses
-- Use `E.asVoid` for endpoints that don't return data
+- Use `Effect.asVoid` for endpoints that don't return data
 - Still log completion for debugging
 
 ```typescript
@@ -331,11 +331,11 @@ When adding/updating a client, verify:
 view: (blogPostId: string) =>
   HttpClientRequest.get(`/v1/blog/${blogPostId}/view`).pipe(
     client.execute,
-    E.scoped,
-    E.asVoid,
-    E.tap(() => E.logInfo('view completed', { blogPostId })),
-    E.tapError(E.logError),
-    E.withSpan('add-view', {
+    Effect.scoped,
+    Effect.asVoid,
+    Effect.tap(() => Effect.logInfo('view completed', { blogPostId })),
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('add-view', {
       attributes: { blogPostId },
     }),
   ),
@@ -348,7 +348,7 @@ view: (blogPostId: string) =>
 ```typescript
 // ✅ CORRECT - Optional parameters
 getAllTags: (params?: GetTagsInput) =>
-  S.encode(GetTagsInput)(params ?? { page: 1, limit: 100 }).pipe(
+  Schema.encode(GetTagsInput)(params ?? { page: 1, limit: 100 }).pipe(
     // ...
   ),
 ```

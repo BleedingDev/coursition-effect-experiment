@@ -20,7 +20,7 @@ import { SearchStore } from '../../stores/search/search.store.js'
 
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases
 import { BlogStore } from 'src/stores/blog/blog.store.js'
@@ -33,17 +33,17 @@ import { BlogStore } from 'src/stores/blog/blog.store.js'
 
 ```typescript
 export const myUsecase = (input: MyInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     // Business logic implementation here...
     const result = yield* businessLogic(input)
     return result
   }).pipe(
     // 🔴 MANDATORY: Simple error logging - NO custom messages
-    E.tapError(E.logError),
-    // 🔴 MANDATORY: Use E.orDie for unexpected errors OR allow domain errors to bubble up
-    E.orDie, // Use this for usecases that should only return success
+    Effect.tapError(Effect.logError),
+    // 🔴 MANDATORY: Use Effect.orDie for unexpected errors OR allow domain errors to bubble up
+    Effect.orDie, // Use this for usecases that should only return success
     // 🔴 MANDATORY: Observability span with relevant attributes
-    E.withSpan('my-usecase-name', { 
+    Effect.withSpan('my-usecase-name', { 
       attributes: { 
         // Only include primitive values, not entire objects
         userId: input.userId,
@@ -59,7 +59,7 @@ export const myUsecase = (input: MyInput) =>
 ```typescript
 // ✅ CORRECT - Allow NotFoundError for client handling
 export const getBlogByIdUsecase = (id: BlogPostId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const userStore = yield* UserStore
 
@@ -70,9 +70,9 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
       // ... transformation
     })
   }).pipe(
-    E.tapError(E.logError), // ✅ Simple logging only
-    // ❌ NO E.orDie - let NotFoundError bubble up
-    E.withSpan('getBlogByIdUsecase', { 
+    Effect.tapError(Effect.logError), // ✅ Simple logging only
+    // ❌ NO Effect.orDie - let NotFoundError bubble up
+    Effect.withSpan('getBlogByIdUsecase', { 
       attributes: { blogPostId: id } 
     })
   )
@@ -82,7 +82,7 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
 ```typescript
 // ✅ CORRECT - Allow ConflictError for client handling
 export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     
     const blogPost = BlogPost.make({
@@ -92,28 +92,28 @@ export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
     const result = yield* blogStore.create(blogPost) // Can throw ConflictError
     return result
   }).pipe(
-    E.tapError(E.logError), // ✅ Simple logging only
-    // ❌ NO E.orDie - let ConflictError bubble up
-    E.withSpan('createBlogPostUsecase', { 
+    Effect.tapError(Effect.logError), // ✅ Simple logging only
+    // ❌ NO Effect.orDie - let ConflictError bubble up
+    Effect.withSpan('createBlogPostUsecase', { 
       attributes: { authorId: input.authorId } 
     })
   )
 ```
 
-#### UPDATE/DELETE Usecases - Use E.orDie for Unexpected Errors
+#### UPDATE/DELETE Usecases - Use Effect.orDie for Unexpected Errors
 ```typescript
-// ✅ CORRECT - Use E.orDie for operations that should always succeed
+// ✅ CORRECT - Use Effect.orDie for operations that should always succeed
 export const updateBlogPostUsecase = (id: BlogPostId, patches: BlogPostPatches) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     
     // Business logic that should not fail unexpectedly
     const result = yield* blogStore.updateAttributes(id, patches)
     return result
   }).pipe(
-    E.tapError(E.logError), // ✅ Simple logging only
-    E.orDie, // ✅ Die on any unexpected errors
-    E.withSpan('updateBlogPostUsecase', { 
+    Effect.tapError(Effect.logError), // ✅ Simple logging only
+    Effect.orDie, // ✅ Die on any unexpected errors
+    Effect.withSpan('updateBlogPostUsecase', { 
       attributes: { blogPostId: id } 
     })
   )
@@ -123,7 +123,7 @@ export const updateBlogPostUsecase = (id: BlogPostId, patches: BlogPostPatches) 
 ```typescript
 // ✅ CORRECT - Allow domain-specific errors to bubble up
 export const likeBlogPostUsecase = (input: LikeInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const blogPost = yield* blogStore.getById(input.id)
     
@@ -135,9 +135,9 @@ export const likeBlogPostUsecase = (input: LikeInput) =>
     const result = yield* blogStore.addLike(input.id, input.userId)
     return result
   }).pipe(
-    E.tapError(E.logError), // ✅ Simple logging only
-    // ❌ NO E.orDie - let business logic errors bubble up
-    E.withSpan('likeBlogPostUsecase', { 
+    Effect.tapError(Effect.logError), // ✅ Simple logging only
+    // ❌ NO Effect.orDie - let business logic errors bubble up
+    Effect.withSpan('likeBlogPostUsecase', { 
       attributes: { blogPostId: input.id, userId: input.userId } 
     })
   )
@@ -148,30 +148,30 @@ export const likeBlogPostUsecase = (input: LikeInput) =>
 ```typescript
 // ❌ WRONG: Verbose error logging with custom messages
 export const badUsecase = (input: MyInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* businessLogic(input)
     return result
   }).pipe(
     // ❌ WRONG: Custom error messages and JSON.stringify
-    E.tapError((error) =>
-      E.logError('badUsecase failed', JSON.stringify({ error, input }))
+    Effect.tapError((error) =>
+      Effect.logError('badUsecase failed', JSON.stringify({ error, input }))
     ),
     // ❌ WRONG: Manual error formatting
-    E.catchAll((error) => 
-      E.logError(`Failed to execute badUsecase: ${error.message}`)
+    Effect.catchAll((error) => 
+      Effect.logError(`Failed to execute badUsecase: ${error.message}`)
     ),
-    E.withSpan('badUsecase')
+    Effect.withSpan('badUsecase')
   )
 
-// ❌ WRONG: Using E.orDie when domain errors should bubble up
+// ❌ WRONG: Using Effect.orDie when domain errors should bubble up
 export const getBlogByIdUsecase = (id: BlogPostId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* blogStore.getById(id) // NotFoundError should bubble up
     return result
   }).pipe(
-    E.tapError(E.logError),
-    E.orDie, // ❌ WRONG: This suppresses NotFoundError that client needs
-    E.withSpan('getBlogByIdUsecase', { attributes: { id } })
+    Effect.tapError(Effect.logError),
+    Effect.orDie, // ❌ WRONG: This suppresses NotFoundError that client needs
+    Effect.withSpan('getBlogByIdUsecase', { attributes: { id } })
   )
 ```
 
@@ -181,19 +181,19 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
 |--------------|----------------------|------------------------|
 | **GET** (getById, getBySlug) | `NotFoundError` | Let bubble up - client needs to handle |
 | **CREATE** | `ConflictError` | Let bubble up - client needs to handle |
-| **UPDATE/DELETE** | None expected | Use `E.orDie` - should always succeed |
+| **UPDATE/DELETE** | None expected | Use `Effect.orDie` - should always succeed |
 | **LIKE/DISLIKE** | Business logic errors | Let bubble up - client needs to handle |
-| **SEARCH/LIST** | None expected | Use `E.orDie` - should always succeed |
+| **SEARCH/LIST** | None expected | Use `Effect.orDie` - should always succeed |
 
 ### ✅ CORRECT Error Logging Pattern
 ```typescript
 // ✅ ALWAYS use this exact pattern - no custom messages
-E.tapError(E.logError)
+Effect.tapError(Effect.logError)
 
 // ❌ NEVER use verbose logging
-E.tapError((error) => E.logError('Custom message', JSON.stringify(error)))
-E.tapError((error) => E.logError(`Failed to ${operation}:`, error.message))
-E.catchAll((error) => E.logError('Something failed', error))
+Effect.tapError((error) => Effect.logError('Custom message', JSON.stringify(error)))
+Effect.tapError((error) => Effect.logError(`Failed to ${operation}:`, error.message))
+Effect.catchAll((error) => Effect.logError('Something failed', error))
 ```
 
 ## BlogPostProfile Transformation Pattern
@@ -205,18 +205,18 @@ E.catchAll((error) => E.logError('Something failed', error))
 ### BlogPostProfile Transformation Pattern
 ```typescript
 export const getBlogByIdUsecase = (id: BlogPostId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const userStore = yield* UserStore
 
     // Get the blog post
     const blogPost = yield* blogStore.getById(id)
-    yield* E.annotateCurrentSpan('blogPost.id', blogPost.id)
-    yield* E.annotateCurrentSpan('blogPost.authorId', blogPost.authorId)
+    yield* Effect.annotateCurrentSpan('blogPost.id', blogPost.id)
+    yield* Effect.annotateCurrentSpan('blogPost.authorId', blogPost.authorId)
 
     // Get the author information
     const author = yield* userStore.getAuthorById(blogPost.authorId)
-    yield* E.annotateCurrentSpan('author.id', author.id)
+    yield* Effect.annotateCurrentSpan('author.id', author.id)
 
     // Transform to BlogPostProfile
     const blogPostProfile = BlogPostProfile.make({
@@ -243,11 +243,11 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
 
     return blogPostProfile
   }).pipe(
-    E.tapError(E.logError),
-    E.withSpan('getBlogByIdUsecase', { 
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('getBlogByIdUsecase', { 
       attributes: { blogPostId: id } 
     }),
-    E.annotateLogs({ 
+    Effect.annotateLogs({ 
       usecase: 'getBlogByIdUsecase', 
       blogPostId: id 
     })
@@ -257,16 +257,16 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
 ### Multiple BlogPost Transformation
 ```typescript
 export const getBlogByAuthorIdUsecase = (authorId: UserId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const userStore = yield* UserStore
 
     const blogPosts = yield* blogStore.getByAuthorId(authorId)
-    yield* E.annotateCurrentSpan('blogPostsCount', blogPosts.length)
+    yield* Effect.annotateCurrentSpan('blogPostsCount', blogPosts.length)
 
     // Get author once for all blog posts
     const author = yield* userStore.getAuthorById(authorId)
-    yield* E.annotateCurrentSpan('author.id', author.id)
+    yield* Effect.annotateCurrentSpan('author.id', author.id)
 
     // Transform each blog post to BlogPostProfile
     const blogPostProfiles = blogPosts.map((blogPost) =>
@@ -279,9 +279,9 @@ export const getBlogByAuthorIdUsecase = (authorId: UserId) =>
 
     return blogPostProfiles
   }).pipe(
-    E.tapError(E.logError),
-    // ❌ NO E.orDie - let NotFoundError bubble up
-    E.withSpan('getBlogByAuthorIdUsecase', { 
+    Effect.tapError(Effect.logError),
+    // ❌ NO Effect.orDie - let NotFoundError bubble up
+    Effect.withSpan('getBlogByAuthorIdUsecase', { 
       attributes: { authorId } 
     })
   )
@@ -292,8 +292,8 @@ When usecases return BlogPostProfile, handlers must provide both stores:
 
 ```typescript
 export const handler = _handler.pipe(
-  E.provide(BlogStore.Default),
-  E.provide(UserStore.Default), // Required for author information
+  Effect.provide(BlogStore.Default),
+  Effect.provide(UserStore.Default), // Required for author information
   toHandler,
 )
 ```
@@ -307,7 +307,7 @@ export const handler = _handler.pipe(
  * @returns The created blog post with all default values set
  */
 export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     // Generate unique ID for the blog post
     const blogPostId = BlogPostId.make(randomUUID())
     
@@ -344,9 +344,9 @@ export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
     return createdBlogPost
   }).pipe(
     // ✅ CORRECT: Simple error logging and proper error handling
-    E.tapError(E.logError),
-    // ❌ NO E.orDie - let ConflictError bubble up for client handling
-    E.withSpan('createBlogPostUsecase', { 
+    Effect.tapError(Effect.logError),
+    // ❌ NO Effect.orDie - let ConflictError bubble up for client handling
+    Effect.withSpan('createBlogPostUsecase', { 
       attributes: { authorId: input.authorId } 
     })
   )
@@ -361,14 +361,14 @@ export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
 
 ```typescript
 export const getBlogPostUsecase = (input: GetBlogPostInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const blogPost = yield* blogStore.getById(input.id)
     return blogPost
   }).pipe(
-    E.tapError(E.logError),
-    // ❌ NO E.orDie - let NotFoundError bubble up
-    E.withSpan('getBlogPostUsecase', { 
+    Effect.tapError(Effect.logError),
+    // ❌ NO Effect.orDie - let NotFoundError bubble up
+    Effect.withSpan('getBlogPostUsecase', { 
       attributes: { blogPostId: input.id } 
     })
   )
@@ -380,17 +380,17 @@ export const getBlogPostUsecase = (input: GetBlogPostInput) =>
 
 ```typescript
 export const getBlogByIdUsecase = (id: BlogPostId) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const userStore = yield* UserStore
 
     const blogPost = yield* blogStore.getById(id)
     // ✅ CORRECT: Annotate specific primitive values, not entire objects
-    yield* E.annotateCurrentSpan('blogPost.id', blogPost.id)
-    yield* E.annotateCurrentSpan('blogPost.authorId', blogPost.authorId)
+    yield* Effect.annotateCurrentSpan('blogPost.id', blogPost.id)
+    yield* Effect.annotateCurrentSpan('blogPost.authorId', blogPost.authorId)
 
     const author = yield* userStore.getAuthorById(blogPost.authorId)
-    yield* E.annotateCurrentSpan('author.id', author.id)
+    yield* Effect.annotateCurrentSpan('author.id', author.id)
 
     const blogPostProfile = BlogPostProfile.make({
       // ... business logic transformation
@@ -399,9 +399,9 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
     return blogPostProfile
   }).pipe(
     // ✅ CORRECT: Simple error logging without custom messages
-    E.tapError(E.logError),
-    // ✅ CORRECT: Let NotFoundError bubble up (no E.orDie)
-    E.withSpan('getBlogByIdUsecase', { 
+    Effect.tapError(Effect.logError),
+    // ✅ CORRECT: Let NotFoundError bubble up (no Effect.orDie)
+    Effect.withSpan('getBlogByIdUsecase', { 
       attributes: { 
         // ✅ CORRECT: Only primitive values in span attributes
         blogPostId: id 
@@ -415,20 +415,20 @@ export const getBlogByIdUsecase = (id: BlogPostId) =>
 ```typescript
 // ❌ WRONG: Excessive manual logging and verbose error handling
 export const badUsecase = (input: MyInput) =>
-  E.gen(function* () {
-    yield* E.logInfo('badUsecase started', JSON.stringify(input)) // ❌ Unnecessary
+  Effect.gen(function* () {
+    yield* Effect.logInfo('badUsecase started', JSON.stringify(input)) // ❌ Unnecessary
     
     const result = yield* businessLogic(input)
-    yield* E.annotateCurrentSpan('result', JSON.stringify(result)) // ❌ Large objects
+    yield* Effect.annotateCurrentSpan('result', JSON.stringify(result)) // ❌ Large objects
     
-    yield* E.logInfo('badUsecase completed', JSON.stringify(result)) // ❌ Redundant
+    yield* Effect.logInfo('badUsecase completed', JSON.stringify(result)) // ❌ Redundant
     return result
   }).pipe(
     // ❌ WRONG: Custom error messages and JSON.stringify
-    E.tapError((error) =>
-      E.logError('badUsecase failed', JSON.stringify({ error, input }))
+    Effect.tapError((error) =>
+      Effect.logError('badUsecase failed', JSON.stringify({ error, input }))
     ),
-    E.withSpan('badUsecase', { attributes: { input } }) // ❌ Complex objects
+    Effect.withSpan('badUsecase', { attributes: { input } }) // ❌ Complex objects
   )
 ```
 
@@ -436,22 +436,22 @@ export const badUsecase = (input: MyInput) =>
 
 ```typescript
 // ✅ CORRECT: Annotate primitive values and key metrics
-yield* E.annotateCurrentSpan('blogPost.likesCount', blogPost.likes.length)
-yield* E.annotateCurrentSpan('userAlreadyLiked', blogPost.likes?.includes(userId))
-yield* E.annotateCurrentSpan('finalLikesCount', result.likesCount)
+yield* Effect.annotateCurrentSpan('blogPost.likesCount', blogPost.likes.length)
+yield* Effect.annotateCurrentSpan('userAlreadyLiked', blogPost.likes?.includes(userId))
+yield* Effect.annotateCurrentSpan('finalLikesCount', result.likesCount)
 
 // ❌ WRONG: Annotating large objects
-yield* E.annotateCurrentSpan('blogPost', JSON.stringify(blogPost))
-yield* E.annotateCurrentSpan('result', JSON.stringify(result))
+yield* Effect.annotateCurrentSpan('blogPost', JSON.stringify(blogPost))
+yield* Effect.annotateCurrentSpan('result', JSON.stringify(result))
 ```
 
 ### Required Observability Pattern
 ```typescript
 // ✅ ALWAYS use this exact pattern
 .pipe(
-  E.tapError(E.logError), // Simple error logging
-  E.orDie, // OR let domain errors bubble up
-  E.withSpan('usecase-name', { 
+  Effect.tapError(Effect.logError), // Simple error logging
+  Effect.orDie, // OR let domain errors bubble up
+  Effect.withSpan('usecase-name', { 
     attributes: { 
       primitiveKey: primitiveValue // Only primitive attributes
     } 
@@ -464,18 +464,18 @@ yield* E.annotateCurrentSpan('result', JSON.stringify(result))
 ### Business Logic Implementation
 ```typescript
 export const getBlogPageUsecase = (input: GetBlogPageInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const searchStore = yield* SearchStore
 
     // Get raw data from store
     const algoliaResponse = yield* searchStore.getPage(input)
-    yield* E.annotateCurrentSpan('totalHits', algoliaResponse.nbHits)
-    yield* E.annotateCurrentSpan('totalPages', algoliaResponse.nbPages)
+    yield* Effect.annotateCurrentSpan('totalHits', algoliaResponse.nbHits)
+    yield* Effect.annotateCurrentSpan('totalPages', algoliaResponse.nbPages)
     
     // Transform Algolia hits to BlogPost objects (business logic)
-    const items = yield* E.forEach(
+    const items = yield* Effect.forEach(
       algoliaResponse.hits,
-      S.decodeUnknown(BlogSchema)
+      Schema.decodeUnknown(BlogSchema)
     )
     
     // Calculate pagination (business logic in usecase, not store)
@@ -496,15 +496,15 @@ export const getBlogPageUsecase = (input: GetBlogPageInput) =>
     
     return result
   }).pipe(
-    E.tapError(E.logError),
-    E.withSpan('getBlogPageUsecase', { 
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('getBlogPageUsecase', { 
       attributes: { 
         page: input.page, 
         limit: input.limit, 
         sortBy: input.sortBy 
       } 
     }),
-    E.annotateLogs({ 
+    Effect.annotateLogs({ 
       usecase: 'getBlogPageUsecase', 
       page: input.page, 
       limit: input.limit 
@@ -552,7 +552,7 @@ export const getAllCategoriesUsecase = (input: GetAllCategoriesInput) =>
 ### Business Logic Error Handling
 ```typescript
 export const dislikeBlogPostUsecase = (input: LikeInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const blogStore = yield* BlogStore
     const blogPost = yield* blogStore.getById(input.id)
     
@@ -568,11 +568,11 @@ export const dislikeBlogPostUsecase = (input: LikeInput) =>
     
     return LikeOutput.make({ likesCount: updatedLikes.length })
   }).pipe(
-    E.tapError(E.logError),
-    E.withSpan('dislikeBlogPostUsecase', { 
+    Effect.tapError(Effect.logError),
+    Effect.withSpan('dislikeBlogPostUsecase', { 
       attributes: { blogPostId: input.id, userId: input.userId } 
     }),
-    E.annotateLogs({ 
+    Effect.annotateLogs({ 
       usecase: 'dislikeBlogPostUsecase', 
       blogPostId: input.id, 
       userId: input.userId 
@@ -607,7 +607,7 @@ export const dislikeBlogPostUsecase = (input: LikeInput) =>
 ```typescript
 describe('createBlogPostUsecase', () => {
   it.effect('should create blog post with proper error handling', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const input = { authorId: UserId.make('test-user') }
       const result = yield* createBlogPostUsecase(input)
       
@@ -616,25 +616,25 @@ describe('createBlogPostUsecase', () => {
       expect(result.status).toBe('new')
       expect(result.title).toBe('placeholder')
     }).pipe(
-      E.provide(
+      Effect.provide(
         BlogStore.makeTestService({
-          create: (blogPost) => E.succeed(blogPost)
+          create: (blogPost) => Effect.succeed(blogPost)
         })
       )
     )
   )
   
   it.effect('should handle store errors appropriately', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const input = { authorId: UserId.make('test-user') }
-      const result = yield* E.exit(createBlogPostUsecase(input))
+      const result = yield* Effect.exit(createBlogPostUsecase(input))
       
       expect(Exit.isFailure(result)).toBe(true)
       if (Exit.isFailure(result)) {
         expect(result.cause._tag).toBe('ConflictError')
       }
     }).pipe(
-      E.provide(
+      Effect.provide(
         BlogStore.makeTestService({
           create: () => new ConflictError({ resource: 'BlogPost', id: 'test-id' })
         })
@@ -648,7 +648,7 @@ describe('createBlogPostUsecase', () => {
 ```typescript
 describe('getBlogByIdUsecase', () => {
   it.effect('should return blog post profile with author information', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const mockAuthor = Author.make({
         id: mockUser1.id,
         username: mockUser1.username,
@@ -666,14 +666,14 @@ describe('getBlogByIdUsecase', () => {
       const result = yield* getBlogByIdUsecase(mockBlogPost1.id)
       expect(result).toEqual(expectedProfile)
     }).pipe(
-      E.provide(
+      Effect.provide(
         BlogStore.makeTestService({
-          getById: () => E.succeed(mockBlogPost1)
+          getById: () => Effect.succeed(mockBlogPost1)
         })
       ),
-      E.provide(
+      Effect.provide(
         UserStore.makeTestService({
-          getAuthorById: () => E.succeed(mockAuthor)
+          getAuthorById: () => Effect.succeed(mockAuthor)
         })
       )
     )
@@ -687,7 +687,7 @@ describe('getBlogByIdUsecase', () => {
 ```typescript
 // ❌ WRONG: Comments that just repeat what code is doing
 // Transform Algolia hits to BlogPostItem objects using BlogItemSchema
-const items = yield* S.decodeUnknown(S.Array(BlogItemSchema))(res.hits)
+const items = yield* Schema.decodeUnknown(Schema.Array(BlogItemSchema))(res.hits)
 
 // ❌ WRONG: Comments stating the obvious
 // Get the blog post to check current likes
@@ -706,7 +706,7 @@ yield* blogStore.addLike(input.id, input.userId)
 yield* blogStore.create(blogPost)
 
 // ✅ CORRECT: No obvious comments - let the code speak for itself
-const items = yield* S.decodeUnknown(S.Array(BlogItemSchema))(res.hits)
+const items = yield* Schema.decodeUnknown(Schema.Array(BlogItemSchema))(res.hits)
 const blogPost = yield* blogStore.getById(input.id)
 const hasNext = currentPage < totalPages - 1
 yield* blogStore.addLike(input.id, input.userId)
@@ -722,39 +722,39 @@ if (blogPost.boost && blogPost.boost.expiresAt > new Date() && blogPost.status =
 ### Verbose Error Logging
 ```typescript
 // ❌ WRONG: Verbose error logging with custom messages
-E.tapError((error) =>
-  E.logError('getBlogPostUsecase failed', JSON.stringify({ error, input })),
+Effect.tapError((error) =>
+  Effect.logError('getBlogPostUsecase failed', JSON.stringify({ error, input })),
 )
 
 // ❌ WRONG: Start/complete logging with JSON.stringify
-yield* E.logInfo('getBlogPostUsecase started', JSON.stringify(input))
-yield* E.logInfo('getBlogPostUsecase completed successfully', JSON.stringify(result))
+yield* Effect.logInfo('getBlogPostUsecase started', JSON.stringify(input))
+yield* Effect.logInfo('getBlogPostUsecase completed successfully', JSON.stringify(result))
 
 // ❌ WRONG: Manual error formatting
-E.catchAll((error) => 
-  E.logError(`Failed to execute usecase: ${error.message}`)
+Effect.catchAll((error) => 
+  Effect.logError(`Failed to execute usecase: ${error.message}`)
 )
 
 // ✅ CORRECT: Simple error logging only
-E.tapError(E.logError)
+Effect.tapError(Effect.logError)
 ```
 
 ### Verbose Observability
 ```typescript
 // ❌ WRONG: Annotating entire objects with JSON.stringify
-yield* E.annotateCurrentSpan('algoliaResponse', JSON.stringify(algoliaResponse))
-yield* E.annotateCurrentSpan('paginationResult', JSON.stringify(pagination))
-yield* E.annotateCurrentSpan('input', JSON.stringify(input))
+yield* Effect.annotateCurrentSpan('algoliaResponse', JSON.stringify(algoliaResponse))
+yield* Effect.annotateCurrentSpan('paginationResult', JSON.stringify(pagination))
+yield* Effect.annotateCurrentSpan('input', JSON.stringify(input))
 
 // ❌ WRONG: Annotating complex objects
-yield* E.annotateCurrentSpan('blogPost', blogPost)
-yield* E.annotateCurrentSpan('author', author)
+yield* Effect.annotateCurrentSpan('blogPost', blogPost)
+yield* Effect.annotateCurrentSpan('author', author)
 
 // ✅ CORRECT: Annotate specific primitive values only
-yield* E.annotateCurrentSpan('totalHits', res.nbHits)
-yield* E.annotateCurrentSpan('totalPages', res.nbPages)
-yield* E.annotateCurrentSpan('blogPostId', blogPost.id)
-yield* E.annotateCurrentSpan('authorId', author.id)
+yield* Effect.annotateCurrentSpan('totalHits', res.nbHits)
+yield* Effect.annotateCurrentSpan('totalPages', res.nbPages)
+yield* Effect.annotateCurrentSpan('blogPostId', blogPost.id)
+yield* Effect.annotateCurrentSpan('authorId', author.id)
 ```
 
 ### Comment Guidelines

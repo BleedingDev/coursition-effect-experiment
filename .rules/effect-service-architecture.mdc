@@ -19,7 +19,7 @@ import { createBlogPostUsecase } from '../create/usecase.js'
 
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect as E, Schema as S } from 'effect'
+import { Effect, Schema } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases
 import { BlogStore } from 'src/stores/blog/blog-store.js'
@@ -29,17 +29,17 @@ import { BlogStore } from 'src/stores/blog/blog-store.js'
 
 ### Service Class Structure
 ```typescript
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
   dependencies: [DynamoDBService, ConfigService],
-  effect: E.gen(function* () {
+  effect: Effect.gen(function* () {
     const dynamodb = yield* DynamoDBService
     const config = yield* ConfigService
 
     return {
-      create: (blogPost: BlogPost) => E.gen(function* () {
+      create: (blogPost: BlogPost) => Effect.gen(function* () {
         // Implementation
       }),
-      getById: (id: BlogPostId) => E.gen(function* () {
+      getById: (id: BlogPostId) => Effect.gen(function* () {
         // Implementation
       }),
     }
@@ -64,9 +64,9 @@ export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
  * @returns Created blog post with generated ID and timestamps
  */
 export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     // Start logging - concise format
-    yield* E.logInfo('createBlogPostUsecase started', JSON.stringify(input))
+    yield* Effect.logInfo('createBlogPostUsecase started', JSON.stringify(input))
 
     const blogStore = yield* BlogStore
 
@@ -76,20 +76,20 @@ export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
       ...input,
       // ... other fields
     })
-    yield* E.annotateCurrentSpan('blogPostData', JSON.stringify(blogPostData))
+    yield* Effect.annotateCurrentSpan('blogPostData', JSON.stringify(blogPostData))
 
     const createdBlogPost = yield* blogStore.create(blogPostData)
-    yield* E.annotateCurrentSpan('createdBlogPost', JSON.stringify(createdBlogPost))
+    yield* Effect.annotateCurrentSpan('createdBlogPost', JSON.stringify(createdBlogPost))
 
     // Completion logging - concise format
-    yield* E.logInfo('createBlogPostUsecase completed successfully', JSON.stringify(createdBlogPost))
+    yield* Effect.logInfo('createBlogPostUsecase completed successfully', JSON.stringify(createdBlogPost))
 
     return createdBlogPost
   }).pipe(
-    E.tapError((error) =>
-      E.logError('createBlogPostUsecase failed', JSON.stringify({ error, input }))
+    Effect.tapError((error) =>
+      Effect.logError('createBlogPostUsecase failed', JSON.stringify({ error, input }))
     ),
-    E.withSpan('createBlogPostUsecase', { attributes: { input } })
+    Effect.withSpan('createBlogPostUsecase', { attributes: { input } })
   )
 ```
 
@@ -98,24 +98,24 @@ export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
 #### ✅ CORRECT - Concise Logging Format
 ```typescript
 // Start logging
-yield* E.logInfo('usecaseName started', JSON.stringify(input))
+yield* Effect.logInfo('usecaseName started', JSON.stringify(input))
 
 // Span annotations for key data
-yield* E.annotateCurrentSpan('dataName', JSON.stringify(data))
+yield* Effect.annotateCurrentSpan('dataName', JSON.stringify(data))
 
 // Completion logging
-yield* E.logInfo('usecaseName completed successfully', JSON.stringify(result))
+yield* Effect.logInfo('usecaseName completed successfully', JSON.stringify(result))
 
 // Error logging
-E.tapError((error) =>
-  E.logError('usecaseName failed', JSON.stringify({ error, input }))
+Effect.tapError((error) =>
+  Effect.logError('usecaseName failed', JSON.stringify({ error, input }))
 )
 ```
 
 #### ❌ WRONG - Verbose Object Format
 ```typescript
 // Don't use verbose object format with timestamps
-yield* E.logInfo('usecaseName started', {
+yield* Effect.logInfo('usecaseName started', {
   input: JSON.stringify(input),
   timestamp: new Date().toISOString(),
 })
@@ -125,7 +125,7 @@ yield* E.logInfo('usecaseName started', {
 - ✅ Business logic and orchestration
 - ✅ Pagination calculations and data transformation
 - ✅ Concise logging with JSON.stringify for structured data
-- ✅ Span annotations for key data points using E.annotateCurrentSpan
+- ✅ Span annotations for key data points using Effect.annotateCurrentSpan
 - ✅ Detailed JSDoc documentation
 - ✅ Error context and handling
 - ❌ No direct database or external service calls
@@ -136,19 +136,19 @@ yield* E.logInfo('usecaseName started', {
 ### Handler Structure
 ```typescript
 export const _handler = schemaBody(CreateBlogPostInput).pipe(
-  E.flatMap(createBlogPostUsecase),
-  E.flatMap(createdResponse),
-  E.catchTags({
+  Effect.flatMap(createBlogPostUsecase),
+  Effect.flatMap(createdResponse),
+  Effect.catchTags({
     ParseError: (error) => badRequestResponse(error.message),
     ConflictError: () => conflictResponse('Blog post already exists'),
   }),
-  E.orDie,
-  E.withSpan('create-blog-post'),
+  Effect.orDie,
+  Effect.withSpan('create-blog-post'),
 )
 
 export const handler = _handler.pipe(
-  E.provide(BlogStore.Default),
-  E.withSpan('create-blog-post-handler'),
+  Effect.provide(BlogStore.Default),
+  Effect.withSpan('create-blog-post-handler'),
   toHandler,
 )
 ```
@@ -169,25 +169,25 @@ import { describe, expect, it } from '@effect/vitest'
 describe('BlogStore', () => {
   it('should create a blog post', async () => {
     const result = await BlogStore.pipe(
-      E.flatMap((store) => store.create(mockBlogPost1)),
-      E.provide(
+      Effect.flatMap((store) => store.create(mockBlogPost1)),
+      Effect.provide(
         BlogStore.makeTestService({
-          create: () => E.succeed(mockBlogPost1),
+          create: () => Effect.succeed(mockBlogPost1),
         }),
       ),
-      E.provide(MockConfigLayer),
-      E.runPromise,
+      Effect.provide(MockConfigLayer),
+      Effect.runPromise,
     )
     expect(result.title).toEqual(mockBlogPost1.title)
   })
 
   it.effect('should handle errors with Effect test', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const store = yield* BlogStore
-      const result = yield* E.exit(store.getById('non-existent'))
+      const result = yield* Effect.exit(store.getById('non-existent'))
       expect(Exit.isFailure(result)).toBe(true)
     }).pipe(
-      E.provide(BlogStore.makeTestService({
+      Effect.provide(BlogStore.makeTestService({
         getById: () => new NotFoundError({ resource: 'BlogPost', id: 'non-existent' })
       }))
     )
@@ -198,13 +198,13 @@ describe('BlogStore', () => {
 ### Usecase Testing
 ```typescript
 it.effect('should create blog post with proper logging', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* createBlogPostUsecase(mockInput)
     expect(result.id).toBeDefined()
     expect(result.authorId).toBe(mockInput.authorId)
   }).pipe(
-    E.provide(BlogStore.makeTestService({
-      create: () => E.succeed(mockBlogPost1)
+    Effect.provide(BlogStore.makeTestService({
+      create: () => Effect.succeed(mockBlogPost1)
     }))
   )
 )
@@ -227,20 +227,20 @@ export class BlogPostConflictError extends Data.TaggedError('BlogPostConflictErr
 ```typescript
 // Store: Convert external errors to domain errors
 const result = yield* dynamodb.get(params).pipe(
-  E.catchTag('ItemNotFound', () =>
+  Effect.catchTag('ItemNotFound', () =>
     new BlogPostNotFoundError({ id })
   )
 )
 
 // Usecase: Add context and logging
 const blogPost = yield* blogStore.getById(id).pipe(
-  E.tapError((error) =>
-    E.logError('Failed to retrieve blog post', JSON.stringify({ error, id }))
+  Effect.tapError((error) =>
+    Effect.logError('Failed to retrieve blog post', JSON.stringify({ error, id }))
   )
 )
 
 // Handler: Map to HTTP responses
-E.catchTags({
+Effect.catchTags({
   BlogPostNotFoundError: () => notFoundResponse('Blog post not found'),
   BlogPostConflictError: () => conflictResponse('Blog post already exists'),
 })
@@ -248,15 +248,15 @@ E.catchTags({
 
 ## 7. Service Definition
 
-### Always define service with default implementation as `E.Service`
+### Always define service with default implementation as `Effect.Service`
 - There is one main implementation of a service
 - There is only one implementation of a service
 
-#### ✅ CORRECT - Service with default implementation as `E.Service`
+#### ✅ CORRECT - Service with default implementation as `Effect.Service`
 ```typescript
-export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
   dependencies: [DynamoDBService, ConfigService],
-  effect: E.gen(...)
+  effect: Effect.gen(...)
 }){}
 ```
 

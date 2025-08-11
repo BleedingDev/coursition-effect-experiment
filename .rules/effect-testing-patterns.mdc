@@ -14,7 +14,7 @@ alwaysApply: false
 
 ```typescript
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Exit } from 'effect'
+import { Effect, Exit } from 'effect'
 ```
 
 ### Import Patterns - ALWAYS Use Relative Paths
@@ -30,7 +30,7 @@ import { SearchStore } from '../../stores/search/search.store.js'
 
 // ✅ CORRECT - Package imports for external dependencies
 import { BlogPost, mockBlogPost1 } from '@t6c/blog-domain'
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 
 // ❌ WRONG - Never use src/ aliases in tests
 import { BlogStore } from 'src/stores/blog/blog.store.js'
@@ -52,8 +52,8 @@ When the same data transformation logic appears in multiple places:
 export const transformApiResponseToItems = (
   response: ApiResponse,
   additionalData: AdditionalData,
-): E.Effect<Item[], never, SomeStore> =>
-  E.gen(function* () => {
+): Effect.Effect<Item[], never, SomeStore> =>
+  Effect.gen(function* () => {
     // Common transformation logic
     const items = yield* processResponse(response)
     const enrichedItems = yield* enrichWithAdditionalData(items, additionalData)
@@ -61,8 +61,8 @@ export const transformApiResponseToItems = (
   })
 
 // ❌ WRONG: Duplicating transformation logic in each usecase
-const items = yield* S.decodeUnknown(S.Array(ItemSchema))(response.data)
-const enrichedItems = yield* E.all(
+const items = yield* Schema.decodeUnknown(Schema.Array(ItemSchema))(response.data)
+const enrichedItems = yield* Effect.all(
   items.map(item => enrichWithData(item, additionalData))
 )
 ```
@@ -109,24 +109,24 @@ When you need to fetch related data and combine it:
 // ✅ CORRECT: Extract reusable enrichment utility
 export const enrichItemsWithRelatedData = (
   items: BaseItem[],
-): E.Effect<EnrichedItem[], never, RelatedDataStore> =>
-  E.gen(function* () {
+): Effect.Effect<EnrichedItem[], never, RelatedDataStore> =>
+  Effect.gen(function* () {
     const store = yield* RelatedDataStore
     
     // Extract unique IDs
     const relatedIds = [...new Set(items.map(item => item.relatedId))]
     
     // Fetch all related data in parallel
-    const relatedData = yield* E.all(
+    const relatedData = yield* Effect.all(
       relatedIds.map(id => 
         store.getById(id).pipe(
-          E.map(data => [id, data] as const)
+          Effect.map(data => [id, data] as const)
         )
       )
-    ).pipe(E.map(pairs => new Map(pairs)))
+    ).pipe(Effect.map(pairs => new Map(pairs)))
     
     // Combine items with related data
-    return yield* E.all(
+    return yield* Effect.all(
       items.map(item => combineItemWithRelatedData(item, relatedData.get(item.relatedId)))
     )
   })
@@ -154,7 +154,7 @@ export const enrichItemsWithRelatedData = (
 // ✅ CORRECT: Reusable Algolia utilities
 export const decodeAlgoliaHitsWithAuthors = (
   hits: unknown[],
-): E.Effect<BlogPostItem[], never, UserStore> => {
+): Effect.Effect<BlogPostItem[], never, UserStore> => {
   // Reusable logic for decoding and enriching Algolia data
 }
 
@@ -210,8 +210,8 @@ throw new Error('Validation failed')
 
 ```typescript
 // ✅ CORRECT - Use yield* new ErrorClass() in Effect.gen
-export const getUserById = (id: string): E.Effect<User, NotFoundError, UserStore> =>
-  E.gen(function* () {
+export const getUserById = (id: string): Effect.Effect<User, NotFoundError, UserStore> =>
+  Effect.gen(function* () {
     const userStore = yield* UserStore
     const user = yield* userStore.findById(id)
     
@@ -223,8 +223,8 @@ export const getUserById = (id: string): E.Effect<User, NotFoundError, UserStore
   })
 
 // ❌ WRONG - Never throw errors in Effect.gen
-export const getUserById = (id: string): E.Effect<User, never, UserStore> =>
-  E.gen(function* () {
+export const getUserById = (id: string): Effect.Effect<User, never, UserStore> =>
+  Effect.gen(function* () {
     const userStore = yield* UserStore
     const user = yield* userStore.findById(id)
     
@@ -244,13 +244,13 @@ import { Match } from 'effect'
 
 const handleUserOperation = (userId: string) =>
   getUserById(userId).pipe(
-    E.catchAll((error) =>
+    Effect.catchAll((error) =>
       Match.value(error).pipe(
         Match.when({ _tag: 'NotFoundError' }, (err) =>
-          E.succeed({ success: false, message: `User ${err.id} not found` })
+          Effect.succeed({ success: false, message: `User ${err.id} not found` })
         ),
         Match.when({ _tag: 'UnauthorizedError' }, (err) =>
-          E.succeed({ success: false, message: 'Access denied' })
+          Effect.succeed({ success: false, message: 'Access denied' })
         ),
         Match.exhaustive
         // or March.orElse((error) => error) to handle it differently
@@ -261,7 +261,7 @@ const handleUserOperation = (userId: string) =>
 // ❌ WRONG - Using try/catch breaks Effect error handling
 const handleUserOperation = async (userId: string) => {
   try {
-    const user = await E.runPromise(getUserById(userId))
+    const user = await Effect.runPromise(getUserById(userId))
     return { success: true, user }
   } catch (error) {
     // This won't catch Effect errors properly!
@@ -279,8 +279,8 @@ export class ExternalApiError extends Data.TaggedError('ExternalApiError')<{
   operation: string
 }> {}
 
-const callExternalApi = (url: string): E.Effect<ApiResponse, ExternalApiError> =>
-  E.tryPromise({
+const callExternalApi = (url: string): Effect.Effect<ApiResponse, ExternalApiError> =>
+  Effect.tryPromise({
     try: () => fetch(url).then(res => res.json()),
     catch: (error) => new ExternalApiError({
       error,
@@ -289,8 +289,8 @@ const callExternalApi = (url: string): E.Effect<ApiResponse, ExternalApiError> =
   })
 
 // ❌ WRONG - Letting external errors bubble up untyped
-const callExternalApi = (url: string): E.Effect<ApiResponse, unknown> =>
-  E.tryPromise(() => fetch(url).then(res => res.json()))
+const callExternalApi = (url: string): Effect.Effect<ApiResponse, unknown> =>
+  Effect.tryPromise(() => fetch(url).then(res => res.json()))
 ```
 
 #### Testing Tagged Errors
@@ -298,14 +298,14 @@ const callExternalApi = (url: string): E.Effect<ApiResponse, unknown> =>
 ```typescript
 // ✅ CORRECT - Test tagged errors with proper Effect patterns
 it.effect('should handle not found error', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const userStore = UserStore.makeTestService({
-      findById: () => E.succeed(undefined),
+      findById: () => Effect.succeed(undefined),
     })
     
     const result = yield* getUserById('non-existent').pipe(
-      E.provide(userStore),
-      E.exit
+      Effect.provide(userStore),
+      Effect.exit
     )
     
     expect(Exit.isFailure(result)).toBe(true)
@@ -319,7 +319,7 @@ it.effect('should handle not found error', () =>
 // ❌ WRONG - Testing with try/catch doesn't work with Effect errors
 it('should handle not found error', async () => {
   try {
-    await E.runPromise(getUserById('non-existent'))
+    await Effect.runPromise(getUserById('non-existent'))
     expect.fail('Should have thrown an error')
   } catch (error) {
     // This won't work as expected with Effect errors
@@ -372,20 +372,20 @@ export class BusinessRuleError extends Data.TaggedError('BusinessRuleError')<{
 // ✅ CORRECT - Log errors within Effect system
 const processUser = (userId: string) =>
   getUserById(userId).pipe(
-    E.tapError((error) =>
-      E.logError('Failed to get user', {
+    Effect.tapError((error) =>
+      Effect.logError('Failed to get user', {
         userId,
         error: error._tag,
         details: error,
       })
     ),
-    E.catchAll((error) =>
+    Effect.catchAll((error) =>
       Match.value(error).pipe(
         Match.when({ _tag: 'NotFoundError' }, () =>
-          E.succeed(null)
+          Effect.succeed(null)
         ),
         Match.orElse(() =>
-          E.fail(error) // Re-throw for upstream handling
+          Effect.fail(error) // Re-throw for upstream handling
         )
       )
     )
@@ -394,9 +394,9 @@ const processUser = (userId: string) =>
 // ❌ WRONG - Using console.log breaks Effect logging
 const processUser = (userId: string) =>
   getUserById(userId).pipe(
-    E.catchAll((error) => {
+    Effect.catchAll((error) => {
       console.log('Error:', error) // Use Effect.log instead
-      return E.succeed(null)
+      return Effect.succeed(null)
     })
   )
 ```
@@ -405,9 +405,9 @@ const processUser = (userId: string) =>
 
 1. **Never throw**: Use `yield* new ErrorClass()` instead of `throw new Error()`
 2. **Type errors**: All errors should be tagged with specific types
-3. **Handle explicitly**: Use `E.catchAll` with `Match` for error handling
-4. **Test properly**: Use `E.exit` and `getExitError` for testing errors
-5. **Log within Effect**: Use `E.log` instead of `console.log`
+3. **Handle explicitly**: Use `Effect.catchAll` with `Match` for error handling
+4. **Test properly**: Use `Effect.exit` and `getExitError` for testing errors
+5. **Log within Effect**: Use `Effect.log` instead of `console.log`
 6. **Convert boundaries**: Convert external errors to tagged errors at boundaries
 
 ## Effect-TS Test Variants
@@ -419,7 +419,7 @@ const processUser = (userId: string) =>
 
 ```typescript
 it.effect('should test with Effect context', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const result = yield* someEffectOperation()
     expect(result).toBe(expectedValue)
   })
@@ -432,7 +432,7 @@ it.effect('should test with Effect context', () =>
 
 ```typescript
 it.scoped('should manage resources properly', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const resource = yield* acquireResource()
     const result = yield* useResource(resource)
     expect(result).toBe(expectedValue)
@@ -447,7 +447,7 @@ it.scoped('should manage resources properly', () =>
 
 ```typescript
 it.live('should work with live environment', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const now = yield* Clock.currentTimeMillis
     yield* Effect.log('This will be displayed')
     expect(now).toBeGreaterThan(0)
@@ -469,19 +469,19 @@ import { MockConfigLayer } from '../config.js'
 describe('BlogPostService', () => {
   describe('getById', () => {
     it.effect('should get blog post by ID', () =>
-      E.gen(function* () {
+      Effect.gen(function* () {
         const service = yield* BlogPostService
         const result = yield* service.getById(BlogPostId.make('test-id'))
 
         expect(result).toEqual(mockBlogPost)
       }).pipe(
-        E.provide(BlogPostService.DefaultWithoutDependencies),
-        E.provide(
+        Effect.provide(BlogPostService.DefaultWithoutDependencies),
+        Effect.provide(
           FetchHttpClientTest(
             new Response(JSON.stringify(mockBlogPost), { status: 200 }),
           ),
         ),
-        E.provide(MockConfigLayer),
+        Effect.provide(MockConfigLayer),
       ),
     )
   })
@@ -529,28 +529,28 @@ it.effect('should update blog post', () => {
     title: Title.make('Updated Title'),
   }
   
-  return E.gen(function* () {
+  return Effect.gen(function* () {
     const service = yield* BlogPostService
     const result = yield* service.updateAttributes(id, { title })
     expect(result).toEqual(updatedBlogPost)
   }).pipe(
-    E.provide(BlogPostService.DefaultWithoutDependencies),
-    E.provide(
+    Effect.provide(BlogPostService.DefaultWithoutDependencies),
+    Effect.provide(
       FetchHttpClientTest(
         new Response(JSON.stringify(updatedBlogPost), { status: 200 }),
       ),
     ),
-    E.provide(MockConfigLayer),
+    Effect.provide(MockConfigLayer),
   )
 })
 
 // ❌ WRONG - Variable declared inside generator, not accessible in FetchHttpClientTest
 it.effect('should update blog post', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const updatedBlogPost = { /* ... */ } // Not accessible outside
     // ...
   }).pipe(
-    E.provide(
+    Effect.provide(
       FetchHttpClientTest(
         new Response(JSON.stringify(updatedBlogPost), { status: 200 }), // Error!
       ),
@@ -561,41 +561,41 @@ it.effect('should update blog post', () =>
 
 ## Error Testing Patterns
 
-### Clean Error Testing with .pipe(E.exit)
-- **PREFERRED**: Use `.pipe(E.exit)` directly on service calls for cleaner error testing
-- Avoid nested `E.exit(E.gen(...))` patterns
+### Clean Error Testing with .pipe(Effect.exit)
+- **PREFERRED**: Use `.pipe(Effect.exit)` directly on service calls for cleaner error testing
+- Avoid nested `Effect.exit(Effect.gen(...))` patterns
 - Keep layer provision at the test level
 
 ```typescript
 // ✅ CORRECT - Clean error testing pattern
 it.effect('should handle 404 errors', () =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const service = yield* BlogPostService
     const result = yield* service
       .getById(BlogPostId.make('non-existent-id'))
-      .pipe(E.exit)
+      .pipe(Effect.exit)
 
     expect(Exit.isFailure(result)).toBe(true)
     const error = getExitError(result)
     expect(error?._tag).toBe('NotFoundError')
   }).pipe(
-    E.provide(BlogPostService.DefaultWithoutDependencies),
-    E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
-    E.provide(MockConfigLayer),
+    Effect.provide(BlogPostService.DefaultWithoutDependencies),
+    Effect.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+    Effect.provide(MockConfigLayer),
   ),
 )
 
 // ❌ WRONG - Verbose nested pattern
 it.effect('should handle 404 errors', () =>
-  E.gen(function* () {
-    const result = yield* E.exit(
-      E.gen(function* () {
+  Effect.gen(function* () {
+    const result = yield* Effect.exit(
+      Effect.gen(function* () {
         const service = yield* BlogPostService
         yield* service.getById(BlogPostId.make('non-existent-id'))
       }).pipe(
-        E.provide(BlogPostService.DefaultWithoutDependencies),
-        E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
-        E.provide(MockConfigLayer),
+        Effect.provide(BlogPostService.DefaultWithoutDependencies),
+        Effect.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+        Effect.provide(MockConfigLayer),
       ),
     )
     expect(Exit.isFailure(result)).toBe(true)
@@ -624,15 +624,15 @@ expect(error?.message).toContain('Blog post not found')
 ```typescript
 describe('BlogStore', () => {
   it.effect('should create a blog post', () =>
-    E.gen(function* () {
+    Effect.gen(function* () {
       const blogStore = yield* BlogStore
       const result = yield* blogStore.create(mockBlogPost1)
       expect(result.title).toEqual(mockBlogPost1.title)
     }).pipe(
-      E.provide(
+      Effect.provide(
         BlogStore.makeTestService({
-          create: () => E.succeed(mockBlogPost1),
-          getById: () => E.succeed(mockBlogPost1),
+          create: () => Effect.succeed(mockBlogPost1),
+          getById: () => Effect.succeed(mockBlogPost1),
         })
       )
     )
@@ -645,11 +645,11 @@ describe('BlogStore', () => {
 it('should return proper response', async () => {
   const event = lambdaEvent()
   const testStore = SearchStore.makeTestService({
-    getCategories: () => E.succeed(mockAlgoliaResponse),
+    getCategories: () => Effect.succeed(mockAlgoliaResponse),
   })
 
   const result = await toLambdaHandler(
-    _handler.pipe(E.provide(testStore))
+    _handler.pipe(Effect.provide(testStore))
   )(event, lambdaContext, () => undefined)
 
   expect(result?.statusCode).toBe(200)

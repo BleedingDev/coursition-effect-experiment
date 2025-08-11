@@ -1,14 +1,14 @@
 import { FileSystem, Path } from '@effect/platform'
 import { BunContext } from '@effect/platform-bun'
 import { spawn } from 'bun'
-import { Console, Effect as E } from 'effect'
+import { Console, Effect } from 'effect'
 import { YtDlpDownloadError } from 'src/domain/media/media.errors'
 import { S3Config, S3FileSystem, S3FileSystemLive } from 'src/platform/s3-fs'
 import { slugify } from 'src/utils/string'
 import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
 
 const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const localFs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const config = yield* S3Config
@@ -17,7 +17,7 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
     if ('url' in request) {
       yield* Console.log('Starting download for URL:', request.url)
 
-      const metadata = yield* E.tryPromise({
+      const metadata = yield* Effect.tryPromise({
         try: async () => {
           const proc = spawn(
             ['yt-dlp', '--dump-json', '--simulate', '--', request.url],
@@ -51,7 +51,7 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
 
         yield* localFs.makeDirectory(tmpDir, { recursive: true })
 
-        yield* E.tryPromise({
+        yield* Effect.tryPromise({
           try: async () => {
             const proc = spawn(
               [
@@ -92,16 +92,18 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
       const s3Path = `uploads/${request.language}/${timestamp}${extension}`
 
       yield* s3Fs.writeFile(s3Path, fileData)
-      yield* localFs.remove(request.file.path).pipe(E.catchAll(() => E.void))
+      yield* localFs
+        .remove(request.file.path)
+        .pipe(Effect.catchAll(() => Effect.void))
 
       return new URL(`${config.publicBaseUrl}/${s3Path}`)
     }
 
-    return yield* E.fail(new Error('No valid input provided'))
+    return yield* Effect.fail(new Error('No valid input provided'))
   }).pipe(
-    E.tapError(E.logError),
-    E.orDie,
-    E.withSpan('downloadLinkUsecase', {
+    Effect.tapError(Effect.logError),
+    Effect.orDie,
+    Effect.withSpan('downloadLinkUsecase', {
       attributes: {
         language: request.language,
         source: 'url' in request ? 'url' : 'file',
@@ -111,6 +113,6 @@ const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
 
 export const downloadLinkStep = (request: RestateParsedMediaRequestType) =>
   downloadLinkEffect(request).pipe(
-    E.provide(BunContext.layer),
-    E.provide(S3FileSystemLive),
+    Effect.provide(BunContext.layer),
+    Effect.provide(S3FileSystemLive),
   )

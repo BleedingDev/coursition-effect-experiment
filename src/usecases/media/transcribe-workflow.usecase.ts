@@ -1,6 +1,6 @@
 import * as restate from '@restatedev/restate-sdk'
 import { makeUuid4 } from '@typed/id'
-import { Effect as E, type Schema } from 'effect'
+import { Effect, type Schema } from 'effect'
 import { downloadLinkStep } from 'src/steps/media/download-link.step.ts'
 import { persistSubtitlesStep } from 'src/steps/media/persist-subtitles.step.ts'
 import { transcribeMediaStep } from 'src/steps/media/transcribe-media.step.ts'
@@ -18,7 +18,7 @@ type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 export const startTranscribeProcessUsecase = (
   request: UnifiedMediaRequestType,
 ) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const workflowStore = yield* WorkflowStore
     const processId = yield* makeUuid4
     const result = yield* workflowStore.startProcess({
@@ -29,9 +29,9 @@ export const startTranscribeProcessUsecase = (
 
     return result
   }).pipe(
-    E.tapError(E.logError),
-    E.orDie, // Die on any unexpected errors
-    E.withSpan('startTranscribeProcessUsecase', {
+    Effect.tapError(Effect.logError),
+    Effect.orDie, // Die on any unexpected errors
+    Effect.withSpan('startTranscribeProcessUsecase', {
       attributes: {
         language: request.language,
         source: 'url' in request ? 'url' : 'file',

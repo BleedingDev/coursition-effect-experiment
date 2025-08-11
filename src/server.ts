@@ -10,7 +10,7 @@ import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import * as restate from '@restatedev/restate-sdk'
 import { GetRandomValues } from '@typed/id'
-import { Effect as E, Layer } from 'effect'
+import { Effect, Layer } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
 import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
@@ -50,7 +50,7 @@ const ApiImplementation = HttpApiBuilder.api(api).pipe(
   ),
 )
 
-const ServerLayer = E.gen(function* () {
+const ServerLayer = Effect.gen(function* () {
   const port = yield* envVars.PORT
 
   return Layer.mergeAll(

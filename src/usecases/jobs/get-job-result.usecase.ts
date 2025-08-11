@@ -1,15 +1,15 @@
-import { Effect as E } from 'effect'
+import { Effect } from 'effect'
 import { JobsStore } from '../../stores/jobs/jobs.store'
 
 export const getJobResultUsecase = (jobId: string) =>
-  E.gen(function* () {
+  Effect.gen(function* () {
     const jobsStore = yield* JobsStore
     const result = yield* jobsStore.getJobResult(jobId)
     return result
   }).pipe(
-    E.tapError(E.logError),
+    Effect.tapError(Effect.logError),
     // Let JobResultNotFoundError bubble up for client handling
-    E.withSpan('getJobResultUsecase', {
+    Effect.withSpan('getJobResultUsecase', {
       attributes: { jobId },
     }),
   )

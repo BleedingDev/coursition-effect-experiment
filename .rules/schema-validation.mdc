@@ -21,13 +21,13 @@ This rule is automatically applied to files that match these patterns:
 ## Import Patterns
 
 ### Standard Schema Import
-- Always use `Schema as S` for Effect Schema imports
+- Always use `Schema` for Effect Schema imports
 - Use relative paths for internal imports
 
 ```typescript
 // ✅ CORRECT - Standard import pattern
-import { Schema as S } from 'effect'
-import { Data, Effect as E } from 'effect'
+import { Schema } from 'effect'
+import { Data, Effect } from 'effect'
 
 // ✅ CORRECT - Relative imports for internal types
 import { BlogPostId } from '../../domain-common/branded.js'
@@ -36,14 +36,14 @@ import { BlogPostId } from '../../domain-common/branded.js'
 ## Branded Types
 
 ### Basic Branded Types
-- Use `S.pipe` with `S.brand` to create type-branded primitives
+- Use `Schema.pipe` with `Schema.brand` to create type-branded primitives
 - Export both the schema and the type
 
 ```typescript
-export const UserId = S.String.pipe(S.brand('UserId'))
+export const UserId = Schema.String.pipe(Schema.brand('UserId'))
 export type UserId = typeof UserId.Type
 
-export const BlogPostId = S.String.pipe(S.brand('BlogPostId'))
+export const BlogPostId = Schema.String.pipe(Schema.brand('BlogPostId'))
 export type BlogPostId = typeof BlogPostId.Type
 ```
 
@@ -81,7 +81,7 @@ describe('BlogPost schema', () => {
   it.effect('should decode valid blog post', () =>
     E.gen(function* () {
       const input = { id: 'blog-1', title: 'Test Post' }
-      const result = yield* S.decodeUnknown(BlogPost)(input)
+      const result = yield* Schema.decodeUnknown(BlogPost)(input)
       expect(result.id).toBe('blog-1')
     })
   )
