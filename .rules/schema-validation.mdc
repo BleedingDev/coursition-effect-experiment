@@ -20,17 +20,12 @@ This rule is automatically applied to files that match these patterns:
 
 ## Import Patterns
 
-### Standard Schema Import
-- Always use `Schema` for Effect Schema imports
-- Use relative paths for internal imports
+See `.rules/imports-and-conventions.md` for import and naming conventions.
 
+### Schema-Specific Imports
 ```typescript
-// ✅ CORRECT - Standard import pattern
-import { Schema } from 'effect'
-import { Data, Effect } from 'effect'
-
-// ✅ CORRECT - Relative imports for internal types
-import { BlogPostId } from '../../domain-common/branded.js'
+// Schema-specific imports
+import { Schema, Data, Effect } from 'effect'
 ```
 
 ## Branded Types

@@ -17,23 +17,14 @@ import { describe, expect, it } from '@effect/vitest'
 import { Effect, Exit } from 'effect'
 ```
 
-### Import Patterns - ALWAYS Use Relative Paths
-- **CRITICAL**: Always use relative paths for internal imports, never `src/` aliases
-- Use relative paths like `../../stores/blog/blog.store.js`
-- Use package imports for external dependencies like `@t6c/blog-domain`
-- Store files follow pattern: `store-name.store.ts`
+### Import Patterns
+
+See `.rules/imports-and-conventions.md` for import and naming conventions.
 
 ```typescript
-// ✅ CORRECT - Relative paths for internal imports
-import { BlogStore } from '../../stores/blog/blog.store.js'
-import { SearchStore } from '../../stores/search/search.store.js'
-
-// ✅ CORRECT - Package imports for external dependencies
-import { BlogPost, mockBlogPost1 } from '@t6c/blog-domain'
-import { Effect } from 'effect'
-
-// ❌ WRONG - Never use src/ aliases in tests
-import { BlogStore } from 'src/stores/blog/blog.store.js'
+// Test-specific imports
+import { describe, expect, it } from '@effect/vitest'
+import { Effect, Exit } from 'effect'
 ```
 
 ## Reusable Utility Functions

@@ -7,24 +7,7 @@ alwaysApply: false
 
 ## Import Patterns
 
-### Always Use Relative Paths for Internal Imports
-- **CRITICAL**: Never use `src/` aliases for internal imports
-- Always use relative paths like `../../stores/blog/blog.store.js`
-- Use package imports only for external dependencies
-- Store files follow pattern: `store-name.store.ts`
-
-```typescript
-// ✅ CORRECT - Relative paths for internal imports
-import { BlogStore } from '../../stores/blog/blog.store.js'
-import { SearchStore } from '../../stores/search/search.store.js'
-
-// ✅ CORRECT - Package imports for external dependencies
-import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect } from 'effect'
-
-// ❌ WRONG - Never use src/ aliases
-import { BlogStore } from 'src/stores/blog/blog.store.js'
-```
+See `.rules/imports-and-conventions.md` for import and naming conventions.
 
 ## MANDATORY Usecase Structure
 

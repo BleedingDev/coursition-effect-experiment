@@ -7,23 +7,7 @@ alwaysApply: false
 
 ## 1. Import Patterns
 
-### Always Use Relative Paths for Internal Imports
-- **CRITICAL**: Never use `src/` aliases for internal imports
-- Always use relative paths like `../../stores/blog/blog-store.js`
-- Use package imports only for external dependencies
-
-```typescript
-// ✅ CORRECT - Relative paths for internal imports
-import { BlogStore } from '../../stores/blog/blog-store.js'
-import { createBlogPostUsecase } from '../create/usecase.js'
-
-// ✅ CORRECT - Package imports for external dependencies
-import { BlogPost, BlogPostId } from '@t6c/blog-domain'
-import { Effect, Schema } from 'effect'
-
-// ❌ WRONG - Never use src/ aliases
-import { BlogStore } from 'src/stores/blog/blog-store.js'
-```
+See `.rules/imports-and-conventions.md` for import and naming conventions.
 
 ## 2. Store Layer (Data Access)
 
@@ -56,7 +40,7 @@ export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
 
 ## 3. Usecase Layer (Business Logic)
 
-### Usecase Structure with Observability
+### Usecase Structure
 ```typescript
 /**
  * Creates a new blog post with default values
@@ -65,71 +49,35 @@ export class BlogStore extends Effect.Service<BlogStore>()('BlogStore', {
  */
 export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
   Effect.gen(function* () {
-    // Start logging - concise format
-    yield* Effect.logInfo('createBlogPostUsecase started', JSON.stringify(input))
-
     const blogStore = yield* BlogStore
 
-    // Annotate key data points for tracing
     const blogPostData = BlogPost.make({
       id: BlogPostId.make(randomUUID()),
       ...input,
       // ... other fields
     })
-    yield* Effect.annotateCurrentSpan('blogPostData', JSON.stringify(blogPostData))
 
     const createdBlogPost = yield* blogStore.create(blogPostData)
-    yield* Effect.annotateCurrentSpan('createdBlogPost', JSON.stringify(createdBlogPost))
-
-    // Completion logging - concise format
-    yield* Effect.logInfo('createBlogPostUsecase completed successfully', JSON.stringify(createdBlogPost))
 
     return createdBlogPost
   }).pipe(
-    Effect.tapError((error) =>
-      Effect.logError('createBlogPostUsecase failed', JSON.stringify({ error, input }))
-    ),
-    Effect.withSpan('createBlogPostUsecase', { attributes: { input } })
+    Effect.tapError(Effect.logError), // Simple error logging
+    Effect.withSpan('createBlogPostUsecase', { 
+      attributes: { authorId: input.authorId }
+    })
   )
 ```
 
-### Logging and Observability Patterns
+### Logging and Observability
 
-#### ✅ CORRECT - Concise Logging Format
-```typescript
-// Start logging
-yield* Effect.logInfo('usecaseName started', JSON.stringify(input))
-
-// Span annotations for key data
-yield* Effect.annotateCurrentSpan('dataName', JSON.stringify(data))
-
-// Completion logging
-yield* Effect.logInfo('usecaseName completed successfully', JSON.stringify(result))
-
-// Error logging
-Effect.tapError((error) =>
-  Effect.logError('usecaseName failed', JSON.stringify({ error, input }))
-)
-```
-
-#### ❌ WRONG - Verbose Object Format
-```typescript
-// Don't use verbose object format with timestamps
-yield* Effect.logInfo('usecaseName started', {
-  input: JSON.stringify(input),
-  timestamp: new Date().toISOString(),
-})
-```
+See `.rules/logging-and-observability.md` for logging and span patterns.
 
 ### Usecase Responsibilities
 - ✅ Business logic and orchestration
 - ✅ Pagination calculations and data transformation
-- ✅ Concise logging with JSON.stringify for structured data
-- ✅ Span annotations for key data points using Effect.annotateCurrentSpan
 - ✅ Detailed JSDoc documentation
-- ✅ Error context and handling
+- ✅ Error handling with Effect.tapError(Effect.logError)
 - ❌ No direct database or external service calls
-- ❌ No verbose logging with timestamp objects
 
 ## 4. Handler Layer (HTTP Interface)
 

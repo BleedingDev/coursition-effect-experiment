@@ -36,34 +36,18 @@ export class BlogPostService extends Effect.Service<BlogPostService>()(
 
 ## Import Patterns
 
-### Standard Imports
-- Always use relative paths for internal imports
-- Import types with `type` keyword when used only for typing
-- Import schemas without `type` when used for encoding/decoding
+See `.rules/imports-and-conventions.md` for import and naming conventions.
 
+### API Client Specific Imports
 ```typescript
-// ✅ CORRECT - Import patterns
+// API client specific imports
 import {
   FetchHttpClient,
   HttpClientRequest,
   HttpClientResponse,
 } from '@effect/platform'
-import {
-  BlogPost,
-  BlogPostCategory,
-  type BlogPostPatches,
-  CreateBlogPostInput,
-  GetBlogPageInput,
-} from '@t6c/blog-domain'
-import {
-  type BlogPostId,
-  PaginationSchema,
-  type SearchParamsSchema,
-  type UserId,
-} from '@t6c/domain-common'
 import { NotFoundError, createHttpClient } from '@t6c/lib-api'
 import { Data, Effect as E, Layer, Schema as S } from 'effect'
-import { envVars } from '../config.js'
 ```
 
 ## Method Implementation Patterns
