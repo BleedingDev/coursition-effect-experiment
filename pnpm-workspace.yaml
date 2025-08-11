@@ -13,7 +13,23 @@ catalogs:
     "@effect/opentelemetry": ^0.50.6
     "@effect/platform": ^0.84.6
     "@effect/platform-bun": ^0.69.4
+    "@typed/id": ^0.17.2
     "effect": ^3.16.3
+  
+  # AI and ML packages
+  ai:
+    "@ai-sdk/assemblyai": 1.0.1
+    "@ai-sdk/deepgram": 1.0.1
+    "@ai-sdk/elevenlabs": 1.0.1
+    "@ai-sdk/gladia": 1.0.1
+    "@ai-sdk/groq": 2.0.4
+    "@ai-sdk/openai": 2.0.7
+    "ai": 5.0.8
+  
+  # Core packages
+  core:
+    "@restatedev/restate-sdk": ^1.8.1
+    "@restatedev/restate-sdk-clients": ^1.8.1
 
   # Testing framework and utilities
   test:
