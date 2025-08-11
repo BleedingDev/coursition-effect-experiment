@@ -47,7 +47,23 @@ bun run build         # Compile TypeScript
 6. Build for production with `bun run build`
 
 ## Dependency Management
-- Effect ecosystem packages managed via pnpm catalogs
-- Separate catalogs for effect, test, lint, and types packages
-- Always use exact versions for critical dependencies
-- Update dependencies through pnpm catalog system
+
+### pnpm Catalogs
+Dependencies are organized into catalogs in `pnpm-workspace.yaml`:
+- **effect**: Effect-TS ecosystem (`effect`, `@effect/*`)
+- **ai**: AI service SDKs (`@ai-sdk/*`, `ai`)
+- **core**: Core dependencies (`@restatedev/*`)
+- **test**: Testing tools (`vitest`, `@effect/vitest`)
+- **lint**: Linting tools (`@biomejs/biome`, `ultracite`)
+- **types**: TypeScript (`typescript`, `@types/*`)
+
+### Version Strategy
+- **Pin exact versions** in catalogs (no `^` or `~` prefixes)
+- When updating, install the latest available version
+- This ensures reproducible builds while allowing controlled updates
+
+### Updating Dependencies
+1. Check latest versions: `pnpm outdated`
+2. Update to latest in `pnpm-workspace.yaml` catalogs (exact versions)
+3. Run `pnpm install` to update lockfile
+4. Test thoroughly before committing
