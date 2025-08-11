@@ -2,10 +2,10 @@ import { FileSystem, Path } from '@effect/platform'
 import { BunContext } from '@effect/platform-bun'
 import { spawn } from 'bun'
 import { Console, Effect } from 'effect'
-import { YtDlpDownloadError } from 'src/domain/media/media.errors'
-import { S3Config, S3FileSystem, S3FileSystemLive } from 'src/platform/s3-fs'
-import { slugify } from 'src/utils/string'
+import { YtDlpDownloadError } from '../../domain/media/media.errors'
 import type { RestateParsedMediaRequestType } from '../../domain/media/media.schema'
+import { S3Config, S3FileSystem, S3FileSystemLive } from '../../platform/s3-fs'
+import { slugify } from '../../utils/string'
 
 const downloadLinkEffect = (request: RestateParsedMediaRequestType) =>
   Effect.gen(function* () {

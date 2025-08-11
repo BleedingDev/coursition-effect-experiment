@@ -1,13 +1,13 @@
 import * as restate from '@restatedev/restate-sdk'
 import { makeUuid4 } from '@typed/id'
 import { Effect, type Schema } from 'effect'
-import { downloadLinkStep } from 'src/steps/media/download-link.step.ts'
-import { persistSubtitlesStep } from 'src/steps/media/persist-subtitles.step.ts'
-import { transcribeMediaStep } from 'src/steps/media/transcribe-media.step.ts'
 import type {
   RestateParsedMediaRequestType,
   UnifiedMediaRequest,
 } from '../../domain/media/media.schema'
+import { downloadLinkStep } from '../../steps/media/download-link.step'
+import { persistSubtitlesStep } from '../../steps/media/persist-subtitles.step'
+import { transcribeMediaStep } from '../../steps/media/transcribe-media.step'
 import {
   executeStep,
   WorkflowStore,
