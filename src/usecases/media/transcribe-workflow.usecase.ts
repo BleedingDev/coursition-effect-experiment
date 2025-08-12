@@ -9,8 +9,8 @@ import { downloadLinkStep } from '../../steps/media/download-link.step'
 import { persistSubtitlesStep } from '../../steps/media/persist-subtitles.step'
 import { transcribeMediaStep } from '../../steps/media/transcribe-media.step'
 import {
-  WorkflowStore,
   executeStep,
+  WorkflowStore,
 } from '../../stores/workflow/workflow-store.ts'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
