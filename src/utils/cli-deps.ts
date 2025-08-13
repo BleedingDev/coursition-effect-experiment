@@ -3,7 +3,7 @@ import { Args, Command, Options } from '@effect/cli'
 import { FileSystem } from '@effect/platform'
 import { BunContext, BunRuntime } from '@effect/platform-bun'
 import { spawn } from 'bun'
-import { Console, Effect, Option, Schema as S } from 'effect'
+import { Console, Data, Effect, Schema as S } from 'effect'
 import { Document, parseDocument } from 'yaml'
 
 const WorkspaceSchema = S.mutable(
@@ -25,66 +25,161 @@ const WorkspaceSchema = S.mutable(
 
 type Workspace = S.Schema.Type<typeof WorkspaceSchema>
 
+// -----------------------------
+// Typed domain errors
+// -----------------------------
+class VersionFetchError extends Data.TaggedError('VersionFetchError')<{
+  packageName: string
+  cause?: unknown
+}> {}
+
+class WorkspaceReadError extends Data.TaggedError('WorkspaceReadError')<{
+  cause?: unknown
+}> {}
+
+class WorkspaceWriteError extends Data.TaggedError('WorkspaceWriteError')<{
+  cause?: unknown
+}> {}
+
+class WorkspaceParseError extends Data.TaggedError('WorkspaceParseError')<{
+  details: string
+}> {}
+
+class PnpmInstallError extends Data.TaggedError('PnpmInstallError')<{
+  packageName: string
+  catalog: string
+  exitCode: number
+  stderr?: string
+}> {}
+
+class CatalogueSelectionError extends Data.TaggedError(
+  'CatalogueSelectionError',
+)<{
+  available: string[]
+}> {}
+
+type Empty = Record<never, never>
+class NoPackagesError extends Data.TaggedError('NoPackagesError')<Empty> {}
+
+const renderError = (e: unknown): string => {
+  if (typeof e === 'object' && e !== null && '_tag' in e) {
+    const tag = (e as { _tag: string })._tag
+    switch (tag) {
+      case 'VersionFetchError': {
+        const err = e as VersionFetchError
+        return `❌ Failed to fetch latest version for ${err.packageName}`
+      }
+      case 'WorkspaceReadError':
+        return '❌ Failed to read pnpm-workspace.yaml'
+      case 'WorkspaceWriteError':
+        return '❌ Failed to write pnpm-workspace.yaml'
+      case 'WorkspaceParseError': {
+        const err = e as WorkspaceParseError
+        return `❌ Failed to parse workspace: ${err.details}`
+      }
+      case 'PnpmInstallError': {
+        const err = e as PnpmInstallError
+        const stderr = err.stderr?.trim()
+        return `❌ pnpm add failed for ${err.packageName} (catalog: ${err.catalog}) with exit code ${err.exitCode}${
+          stderr ? `\n   stderr: ${stderr}` : ''
+        }`
+      }
+      case 'CatalogueSelectionError': {
+        const err = e as CatalogueSelectionError
+        return `❌ Multiple catalogues found: ${err.available.join(', ')}\n   Please specify one with --catalog`
+      }
+      case 'NoPackagesError':
+        return '❌ No packages specified'
+      default:
+        return `❌ ${String(e)}`
+    }
+  }
+  if (e instanceof Error) {
+    return `❌ ${e.message}`
+  }
+  return `❌ ${String(e)}`
+}
+
 const getLatestVersion = (packageName: string) =>
   Effect.tryPromise({
     try: async () => {
       const proc = spawn(['npm', 'view', packageName, 'version'], {
         stdout: 'pipe',
+        stderr: 'pipe',
       })
-      const text = await new Response(proc.stdout).text()
-      return text.trim()
+      await proc.exited
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ])
+      if (proc.exitCode !== 0) {
+        throw new VersionFetchError({ packageName, cause: stderr })
+      }
+      const version = stdout.trim()
+      if (!version) {
+        throw new VersionFetchError({ packageName, cause: 'empty version' })
+      }
+      return version
     },
-    catch: () => new Error(`Failed to get version for ${packageName}`),
+    catch: (cause) => new VersionFetchError({ packageName, cause }),
   })
 
 const readWorkspaceDocument = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
-  const exists = yield* fs.exists('pnpm-workspace.yaml')
+  const exists = yield* fs
+    .exists('pnpm-workspace.yaml')
+    .pipe(Effect.mapError((cause) => new WorkspaceReadError({ cause })))
 
   if (!exists) {
     const doc = new Document({ packages: ['packages/*'] })
     return doc
   }
 
-  const content = yield* fs.readFileString('pnpm-workspace.yaml')
+  const content = yield* fs
+    .readFileString('pnpm-workspace.yaml')
+    .pipe(Effect.mapError((cause) => new WorkspaceReadError({ cause })))
   return parseDocument(content)
 })
 
 const readWorkspace = Effect.gen(function* () {
   const doc = yield* readWorkspaceDocument
-  return yield* S.decode(WorkspaceSchema)(doc.toJSON())
+  return yield* S.decode(WorkspaceSchema)(doc.toJSON()).pipe(
+    Effect.mapError(
+      (err) =>
+        new WorkspaceParseError({
+          details: typeof err === 'string' ? err : String(err),
+        }),
+    ),
+  )
 })
 
 const writeWorkspaceDocument = (doc: Document) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    yield* fs.writeFileString('pnpm-workspace.yaml', doc.toString())
+    yield* fs
+      .writeFileString('pnpm-workspace.yaml', doc.toString())
+      .pipe(Effect.mapError((cause) => new WorkspaceWriteError({ cause })))
   })
 
 const updateDocumentCatalogue = (
   doc: Document,
-  catalogue: string,
+  catalog: string,
   packageName: string,
   version: string,
 ) => {
-  if (catalogue === 'default') {
+  if (catalog === 'default') {
     if (!doc.has('catalog')) {
       doc.set('catalog', {})
     }
-    const catalog = doc.get('catalog', true) as any
-    if (catalog[packageName]) {
-      doc.setIn(['catalog', packageName], `^${version}`)
-    } else {
-      doc.setIn(['catalog', packageName], `^${version}`)
-    }
+    doc.setIn(['catalog', packageName], `^${version}`)
   } else {
     if (!doc.has('catalogs')) {
       doc.set('catalogs', {})
     }
-    if (!doc.hasIn(['catalogs', catalogue])) {
-      doc.setIn(['catalogs', catalogue], {})
+    if (!doc.hasIn(['catalogs', catalog])) {
+      doc.setIn(['catalogs', catalog], {})
     }
-    doc.setIn(['catalogs', catalogue, packageName], `^${version}`)
+    doc.setIn(['catalogs', catalog, packageName], `^${version}`)
   }
   return doc
 }
@@ -103,71 +198,85 @@ const getAvailableCatalogues = (workspace: Workspace): string[] => {
   return catalogues
 }
 
-const pnpmInstallCatalog = (packageName: string, catalogue: string) =>
+const pnpmInstallCatalog = (packageName: string, catalog: string) =>
   Effect.tryPromise({
     try: async () => {
       const catalogRef =
-        catalogue === 'default'
+        catalog === 'default'
           ? `${packageName}@catalog:`
-          : `${packageName}@catalog:${catalogue}`
+          : `${packageName}@catalog:${catalog}`
 
       const proc = spawn(['pnpm', 'add', catalogRef], {
         stdout: 'pipe',
         stderr: 'pipe',
       })
       await proc.exited
-      if (proc.exitCode !== 0) {
-        throw new Error(`pnpm add failed with exit code: ${proc.exitCode}`)
+      const exitCode = proc.exitCode ?? -1
+      if (exitCode !== 0) {
+        const stderr = await new Response(proc.stderr).text()
+        throw new PnpmInstallError({
+          packageName,
+          catalog,
+          exitCode,
+          stderr,
+        })
       }
     },
-    catch: (e) => new Error(`Failed to install ${packageName} - ${e}`),
+    catch: (cause) =>
+      cause instanceof PnpmInstallError
+        ? cause
+        : new PnpmInstallError({
+            packageName,
+            catalog,
+            exitCode: -1,
+            stderr: typeof cause === 'string' ? cause : undefined,
+          }),
   })
 
-const installPackages = (packages: readonly string[], catalogueName?: string) =>
+const installPackages = (pkgNames: readonly string[], catalogueName?: string) =>
   Effect.gen(function* () {
-    if (packages.length === 0) {
-      yield* Console.error('❌ No packages specified')
-      return
+    if (pkgNames.length === 0) {
+      return yield* Effect.fail(new NoPackagesError())
     }
 
     const workspace = yield* readWorkspace
     const available = getAvailableCatalogues(workspace)
 
-    let catalogue = catalogueName
-    if (catalogue) {
-      yield* Console.log(`📚 Using catalogue: ${catalogue}`)
+    let catalog = catalogueName
+    if (catalog) {
+      yield* Console.log(`📚 Using catalog: ${catalog}`)
     } else if (available.length === 0) {
-      catalogue = 'default'
-      yield* Console.log('📚 Creating default catalogue')
+      catalog = 'default'
+      yield* Console.log('📚 Creating default catalog')
     } else if (available.length === 1) {
-      catalogue = available[0]!
-      yield* Console.log(`📚 Using catalogue: ${catalogue}`)
+      const only = available[0]
+      if (!only) {
+        return yield* Effect.fail(new CatalogueSelectionError({ available }))
+      }
+      catalog = only
+      yield* Console.log(`📚 Using catalog: ${catalog}`)
     } else {
-      yield* Console.error(
-        `❌ Multiple catalogues found: ${available.join(', ')}`,
-      )
-      yield* Console.error('   Please specify one with --catalogue')
-      return
+      return yield* Effect.fail(new CatalogueSelectionError({ available }))
     }
 
     let doc = yield* readWorkspaceDocument
 
-    for (const packageName of packages) {
+    for (const packageName of pkgNames) {
       yield* Console.log(`\n📦 Installing ${packageName}...`)
 
       const version = yield* getLatestVersion(packageName)
       yield* Console.log(`  Found version: ${version}`)
 
-      doc = updateDocumentCatalogue(doc, catalogue, packageName, version)
+      doc = updateDocumentCatalogue(doc, catalog, packageName, version)
       yield* writeWorkspaceDocument(doc)
 
-      yield* pnpmInstallCatalog(packageName, catalogue)
+      yield* pnpmInstallCatalog(packageName, catalog)
 
-      yield* Console.log('✅ Added to catalogue')
+      yield* Console.log('✅ Added to catalog')
     }
 
     yield* Console.log(
-      `\n✨ Done! Added ${packages.length} package(s) to "${catalogue}" catalogue`,
+      `\n✨ Done! Added ${pkgNames.length} package(s) to "${catalog}" catalog`,
     )
   })
 
@@ -200,31 +309,38 @@ const listCatalogues = Effect.gen(function* () {
 
 const packages = Args.text({ name: 'packages' }).pipe(Args.repeated)
 
-const catalogueOption = Options.text('catalogue').pipe(
+const catalogueOption = Options.text('catalog').pipe(
   Options.withAlias('c'),
-  Options.withDescription('Target catalogue name'),
-  Options.optional,
+  Options.withDescription('Target catalog name'),
 )
 
 const installCommand = Command.make(
   'install',
-  { packages, catalogue: catalogueOption },
-  ({ packages, catalogue }) =>
-    installPackages(packages, Option.getOrUndefined(catalogue)).pipe(
-      Effect.catchAll((error) => Console.error(`${error.message}`)),
+  { packages, catalog: catalogueOption },
+  ({ packages: pkgArgs, catalog }) =>
+    installPackages(pkgArgs, catalog).pipe(
+      Effect.catchAll((error) =>
+        Console.error(renderError(error)).pipe(
+          Effect.flatMap(() => Effect.fail(error)),
+        ),
+      ),
     ),
-).pipe(Command.withDescription('Install packages to PNPM workspace catalogue'))
+).pipe(Command.withDescription('Install packages to PNPM workspace catalog'))
 
 const listCatalogsCommand = Command.make('list-catalogs', {}, () =>
   listCatalogues.pipe(
-    Effect.catchAll((error) => Console.error(`❌ ${error.message}`)),
+    Effect.catchAll((error) =>
+      Console.error(renderError(error)).pipe(
+        Effect.flatMap(() => Effect.fail(error)),
+      ),
+    ),
   ),
 ).pipe(Command.withDescription('List available catalogues and their packages'))
 
 const mainCommand = Command.make('deps', {}, () =>
   Console.log("Use 'deps install' or 'deps list-catalogs'"),
 ).pipe(
-  Command.withDescription('PNPM workspace catalogue manager'),
+  Command.withDescription('PNPM workspace catalog manager'),
   Command.withSubcommands([installCommand, listCatalogsCommand]),
 )
 
