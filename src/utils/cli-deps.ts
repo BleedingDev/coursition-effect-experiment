@@ -1,33 +1,23 @@
 #!/usr/bin/env bun
+import process from 'node:process'
 import { Args, Command, Options } from '@effect/cli'
 import { FileSystem } from '@effect/platform'
 import { BunContext, BunRuntime } from '@effect/platform-bun'
 import { spawn } from 'bun'
-import { Console, Data, Effect, Schema as S } from 'effect'
+import { Console, Data, Effect, Match, Schema as S } from 'effect'
 import { Document, parseDocument } from 'yaml'
 
-const WorkspaceSchema = S.mutable(
-  S.Struct({
-    packages: S.optional(S.Array(S.String)),
-    catalog: S.optional(
-      S.mutable(S.Record({ key: S.String, value: S.String })),
-    ),
-    catalogs: S.optional(
-      S.mutable(
-        S.Record({
-          key: S.String,
-          value: S.mutable(S.Record({ key: S.String, value: S.String })),
-        }),
-      ),
-    ),
-  }),
-)
+const WorkspaceSchema = S.Struct({
+  packages: S.optional(S.Array(S.String)),
+  catalog: S.optional(S.Record({ key: S.String, value: S.String })),
+  catalogs: S.optional(
+    S.Record({
+      key: S.String,
+      value: S.Record({ key: S.String, value: S.String }),
+    }),
+  ),
+})
 
-type Workspace = S.Schema.Type<typeof WorkspaceSchema>
-
-// -----------------------------
-// Typed domain errors
-// -----------------------------
 class VersionFetchError extends Data.TaggedError('VersionFetchError')<{
   packageName: string
   cause?: unknown
@@ -52,48 +42,89 @@ class PnpmInstallError extends Data.TaggedError('PnpmInstallError')<{
   stderr?: string
 }> {}
 
-class CatalogueSelectionError extends Data.TaggedError(
-  'CatalogueSelectionError',
-)<{
+class CatalogSelectionError extends Data.TaggedError('CatalogSelectionError')<{
   available: string[]
 }> {}
 
 type Empty = Record<never, never>
 class NoPackagesError extends Data.TaggedError('NoPackagesError')<Empty> {}
+class MissingCatalogOptionError extends Data.TaggedError(
+  'MissingCatalogOptionError',
+)<Empty> {}
+
+type KnownTaggedErrors =
+  | VersionFetchError
+  | WorkspaceReadError
+  | WorkspaceWriteError
+  | WorkspaceParseError
+  | PnpmInstallError
+  | CatalogSelectionError
+  | NoPackagesError
+  | MissingCatalogOptionError
+
+const isKnownTaggedError = (u: unknown): u is KnownTaggedErrors =>
+  typeof u === 'object' &&
+  u !== null &&
+  '_tag' in u &&
+  [
+    'VersionFetchError',
+    'WorkspaceReadError',
+    'WorkspaceWriteError',
+    'WorkspaceParseError',
+    'PnpmInstallError',
+    'CatalogSelectionError',
+    'NoPackagesError',
+    'MissingCatalogOptionError',
+  ].includes((u as { _tag: string })._tag)
+
+const renderTaggedError = Match.type<KnownTaggedErrors>().pipe(
+  Match.tagsExhaustive({
+    VersionFetchError: (err) =>
+      `❌ Failed to fetch latest version for ${err.packageName}`,
+    WorkspaceReadError: () => '❌ Failed to read pnpm-workspace.yaml',
+    WorkspaceWriteError: () => '❌ Failed to write pnpm-workspace.yaml',
+    WorkspaceParseError: (err) =>
+      `❌ Failed to parse workspace: ${err.details}`,
+    PnpmInstallError: (err) => {
+      const stderr = err.stderr?.trim()
+      return (
+        `❌ pnpm add failed for ${err.packageName} (catalog: ${err.catalog}) with exit code ${err.exitCode}` +
+        (stderr ? `\n   stderr: ${stderr}` : '')
+      )
+    },
+    CatalogSelectionError: (err) =>
+      `❌ Multiple catalogs found: ${err.available.join(', ')}\n   Please specify one with --catalog`,
+    NoPackagesError: () => '❌ No packages specified',
+    MissingCatalogOptionError: () =>
+      '❌ Missing required option: --catalog <name>\n' +
+      '   Usage: deps install --catalog <name> <packages...>  (alias: -c)',
+  }),
+)
 
 const renderError = (e: unknown): string => {
-  if (typeof e === 'object' && e !== null && '_tag' in e) {
-    const tag = (e as { _tag: string })._tag
-    switch (tag) {
-      case 'VersionFetchError': {
-        const err = e as VersionFetchError
-        return `❌ Failed to fetch latest version for ${err.packageName}`
-      }
-      case 'WorkspaceReadError':
-        return '❌ Failed to read pnpm-workspace.yaml'
-      case 'WorkspaceWriteError':
-        return '❌ Failed to write pnpm-workspace.yaml'
-      case 'WorkspaceParseError': {
-        const err = e as WorkspaceParseError
-        return `❌ Failed to parse workspace: ${err.details}`
-      }
-      case 'PnpmInstallError': {
-        const err = e as PnpmInstallError
-        const stderr = err.stderr?.trim()
-        return `❌ pnpm add failed for ${err.packageName} (catalog: ${err.catalog}) with exit code ${err.exitCode}${
-          stderr ? `\n   stderr: ${stderr}` : ''
-        }`
-      }
-      case 'CatalogueSelectionError': {
-        const err = e as CatalogueSelectionError
-        return `❌ Multiple catalogues found: ${err.available.join(', ')}\n   Please specify one with --catalog`
-      }
-      case 'NoPackagesError':
-        return '❌ No packages specified'
-      default:
-        return `❌ ${String(e)}`
-    }
+  if (isKnownTaggedError(e)) {
+    return renderTaggedError(e)
   }
+
+  if (typeof e === 'object' && e !== null && '_tag' in e) {
+    const MISSING_REQUIRED_OPTION =
+      '❌ Missing required option or argument.\n   Usage: deps install --catalog <name> <packages...>  (alias: -c)'
+    return Match.value(e).pipe(
+      Match.tag('MissingValue', () => MISSING_REQUIRED_OPTION),
+      Match.tag('MissingOption', () => MISSING_REQUIRED_OPTION),
+      Match.tag('MissingArgument', () => MISSING_REQUIRED_OPTION),
+      Match.tag(
+        'UnknownOption',
+        () => '❌ Unknown option provided. Try --help for usage.',
+      ),
+      Match.tag(
+        'InvalidValue',
+        () => '❌ Invalid value for option or argument.',
+      ),
+      Match.orElse(() => `❌ ${String(e)}`),
+    )
+  }
+
   if (e instanceof Error) {
     return `❌ ${e.message}`
   }
@@ -153,60 +184,42 @@ const readWorkspace = Effect.gen(function* () {
   )
 })
 
-const writeWorkspaceDocument = (doc: Document) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    yield* fs
-      .writeFileString('pnpm-workspace.yaml', doc.toString())
-      .pipe(Effect.mapError((cause) => new WorkspaceWriteError({ cause })))
-  })
+const writeWorkspaceDocument = Effect.fn('writeWorkspaceDocument')(function* (
+  doc: Document,
+) {
+  const fs = yield* FileSystem.FileSystem
+  yield* fs
+    .writeFileString('pnpm-workspace.yaml', doc.toString())
+    .pipe(Effect.mapError((cause) => new WorkspaceWriteError({ cause })))
+})
 
-const updateDocumentCatalogue = (
+const updateDocumentCatalog = (
   doc: Document,
   catalog: string,
   packageName: string,
   version: string,
 ) => {
-  if (catalog === 'default') {
-    if (!doc.has('catalog')) {
-      doc.set('catalog', {})
-    }
-    doc.setIn(['catalog', packageName], `^${version}`)
-  } else {
-    if (!doc.has('catalogs')) {
-      doc.set('catalogs', {})
-    }
-    if (!doc.hasIn(['catalogs', catalog])) {
-      doc.setIn(['catalogs', catalog], {})
-    }
-    doc.setIn(['catalogs', catalog, packageName], `^${version}`)
+  if (!doc.has('catalogs')) {
+    doc.set('catalogs', {})
   }
+  if (!doc.hasIn(['catalogs', catalog])) {
+    doc.setIn(['catalogs', catalog], {})
+  }
+  doc.setIn(['catalogs', catalog, packageName], `^${version}`)
   return doc
 }
 
-const getAvailableCatalogues = (workspace: Workspace): string[] => {
-  const catalogues: string[] = []
-
-  if (workspace.catalog && Object.keys(workspace.catalog).length > 0) {
-    catalogues.push('default')
-  }
-
-  if (workspace.catalogs) {
-    catalogues.push(...Object.keys(workspace.catalogs))
-  }
-
-  return catalogues
-}
-
-const pnpmInstallCatalog = (packageName: string, catalog: string) =>
+const pnpmInstallCatalogs = (
+  packageNames: readonly string[],
+  catalog: string,
+) =>
   Effect.tryPromise({
     try: async () => {
-      const catalogRef =
-        catalog === 'default'
-          ? `${packageName}@catalog:`
-          : `${packageName}@catalog:${catalog}`
+      const catalogRefs = packageNames.map(
+        (packageName) => `${packageName}@catalog:${catalog}`,
+      )
 
-      const proc = spawn(['pnpm', 'add', catalogRef], {
+      const proc = spawn(['pnpm', 'add', ...catalogRefs], {
         stdout: 'pipe',
         stderr: 'pipe',
       })
@@ -215,7 +228,7 @@ const pnpmInstallCatalog = (packageName: string, catalog: string) =>
       if (exitCode !== 0) {
         const stderr = await new Response(proc.stderr).text()
         throw new PnpmInstallError({
-          packageName,
+          packageName: packageNames.join(', '),
           catalog,
           exitCode,
           stderr,
@@ -226,74 +239,87 @@ const pnpmInstallCatalog = (packageName: string, catalog: string) =>
       cause instanceof PnpmInstallError
         ? cause
         : new PnpmInstallError({
-            packageName,
+            packageName: packageNames.join(', '),
             catalog,
             exitCode: -1,
             stderr: typeof cause === 'string' ? cause : undefined,
           }),
   })
 
-const installPackages = (pkgNames: readonly string[], catalogueName?: string) =>
-  Effect.gen(function* () {
-    if (pkgNames.length === 0) {
-      return yield* Effect.fail(new NoPackagesError())
-    }
+const installPackages = Effect.fn('installPackages')(function* (
+  pkgNames: readonly string[],
+  catalogName?: string,
+) {
+  if (pkgNames.length === 0) {
+    return yield* Effect.fail(new NoPackagesError())
+  }
 
-    const workspace = yield* readWorkspace
-    const available = getAvailableCatalogues(workspace)
+  if (!catalogName) {
+    return yield* Effect.fail(new MissingCatalogOptionError())
+  }
 
-    let catalog = catalogueName
-    if (catalog) {
-      yield* Console.log(`📚 Using catalog: ${catalog}`)
-    } else if (available.length === 0) {
-      catalog = 'default'
-      yield* Console.log('📚 Creating default catalog')
-    } else if (available.length === 1) {
-      const only = available[0]
-      if (!only) {
-        return yield* Effect.fail(new CatalogueSelectionError({ available }))
-      }
-      catalog = only
-      yield* Console.log(`📚 Using catalog: ${catalog}`)
+  const catalog = catalogName
+  yield* Console.log(`📚 Using catalog: ${catalog}`)
+
+  const resolved = yield* Effect.all(
+    pkgNames.map((packageName) =>
+      getLatestVersion(packageName).pipe(
+        Effect.map((version) => ({ packageName, version })),
+      ),
+    ),
+    { concurrency: Math.min(8, pkgNames.length) },
+  )
+
+  const versions = new Map(
+    resolved.map(({ packageName, version }) => [packageName, version] as const),
+  )
+
+  let doc = yield* readWorkspaceDocument
+
+  for (const packageName of pkgNames) {
+    const version = versions.get(packageName)
+    if (version) {
+      yield* Console.log(
+        `📦 Queuing ${packageName}@^${version} for catalog "${catalog}"`,
+      )
+      doc = updateDocumentCatalog(doc, catalog, packageName, version)
     } else {
-      return yield* Effect.fail(new CatalogueSelectionError({ available }))
+      yield* Effect.fail(
+        new VersionFetchError({
+          packageName,
+          cause: 'missing resolved version',
+        }),
+      )
     }
+  }
 
-    let doc = yield* readWorkspaceDocument
+  yield* writeWorkspaceDocument(doc)
+  yield* Console.log('📝 Updated pnpm-workspace.yaml with catalog entries')
 
-    for (const packageName of pkgNames) {
-      yield* Console.log(`\n📦 Installing ${packageName}...`)
+  yield* Console.log('📦 Installing packages via pnpm in one batch...')
+  yield* pnpmInstallCatalogs(pkgNames, catalog)
+  yield* Console.log(
+    `✅ Installed ${pkgNames.length} package(s) from catalog "${catalog}"`,
+  )
 
-      const version = yield* getLatestVersion(packageName)
-      yield* Console.log(`  Found version: ${version}`)
+  yield* Console.log(
+    `\n✨ Done! Added ${pkgNames.length} package(s) to "${catalog}" catalog`,
+  )
+})
 
-      doc = updateDocumentCatalogue(doc, catalog, packageName, version)
-      yield* writeWorkspaceDocument(doc)
-
-      yield* pnpmInstallCatalog(packageName, catalog)
-
-      yield* Console.log('✅ Added to catalog')
-    }
-
-    yield* Console.log(
-      `\n✨ Done! Added ${pkgNames.length} package(s) to "${catalog}" catalog`,
-    )
-  })
-
-const listCatalogues = Effect.gen(function* () {
+const listCatalogs = Effect.gen(function* () {
   const workspace = yield* readWorkspace
-  const catalogues = getAvailableCatalogues(workspace)
+  const catalogs = Object.keys(workspace.catalogs || {})
 
-  if (catalogues.length === 0) {
-    yield* Console.log('📭 No catalogues found')
+  if (catalogs.length === 0) {
+    yield* Console.log('📭 No catalogs found')
     return
   }
 
-  yield* Console.log('📚 Available catalogues:\n')
+  yield* Console.log('📚 Available catalogs:\n')
 
-  for (const name of catalogues) {
-    const packages =
-      name === 'default' ? workspace.catalog : workspace.catalogs?.[name]
+  for (const name of catalogs) {
+    const packages = workspace.catalogs?.[name]
 
     const count = packages ? Object.keys(packages).length : 0
     yield* Console.log(`${name} (${count} packages)`)
@@ -309,33 +335,33 @@ const listCatalogues = Effect.gen(function* () {
 
 const packages = Args.text({ name: 'packages' }).pipe(Args.repeated)
 
-const catalogueOption = Options.text('catalog').pipe(
+const catalogOption = Options.text('catalog').pipe(
   Options.withAlias('c'),
   Options.withDescription('Target catalog name'),
 )
 
 const installCommand = Command.make(
   'install',
-  { packages, catalog: catalogueOption },
+  { packages, catalog: catalogOption },
   ({ packages: pkgArgs, catalog }) =>
     installPackages(pkgArgs, catalog).pipe(
       Effect.catchAll((error) =>
         Console.error(renderError(error)).pipe(
-          Effect.flatMap(() => Effect.fail(error)),
+          Effect.zipRight(Effect.sync(() => process.exit(1))),
         ),
       ),
     ),
 ).pipe(Command.withDescription('Install packages to PNPM workspace catalog'))
 
 const listCatalogsCommand = Command.make('list-catalogs', {}, () =>
-  listCatalogues.pipe(
+  listCatalogs.pipe(
     Effect.catchAll((error) =>
       Console.error(renderError(error)).pipe(
-        Effect.flatMap(() => Effect.fail(error)),
+        Effect.zipRight(Effect.sync(() => process.exit(1))),
       ),
     ),
   ),
-).pipe(Command.withDescription('List available catalogues and their packages'))
+).pipe(Command.withDescription('List available catalogs and their packages'))
 
 const mainCommand = Command.make('deps', {}, () =>
   Console.log("Use 'deps install' or 'deps list-catalogs'"),
@@ -345,8 +371,22 @@ const mainCommand = Command.make('deps', {}, () =>
 )
 
 const app = Command.run(mainCommand, {
-  name: 'PNPM Catalogue Manager',
+  name: 'PNPM Catalog Manager',
   version: 'v1.0.0',
 })
 
-app(process.argv).pipe(Effect.provide(BunContext.layer), BunRuntime.runMain)
+app(process.argv).pipe(
+  Effect.catchAll((error) =>
+    Console.error(
+      [
+        renderError(error),
+        '',
+        'Tip:',
+        '  - deps install --catalog <name> <packages...>',
+        '  - deps list-catalogs',
+      ].join('\n'),
+    ).pipe(Effect.zipRight(Effect.sync(() => process.exit(1)))),
+  ),
+  Effect.provide(BunContext.layer),
+  BunRuntime.runMain,
+)
