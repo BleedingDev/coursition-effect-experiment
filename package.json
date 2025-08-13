@@ -12,7 +12,8 @@
     "test:ui": "vitest --ui",
     "check": "biome check --write .",
     "typecheck": "tspc --noEmit",
-    "build": "tspc"
+    "build": "tspc",
+    "deps": "bun run src/utils/package-install.ts"
   },
   "keywords": [
     "effect-ts",
@@ -29,6 +30,7 @@
     "@ai-sdk/gladia": "catalog:ai",
     "@ai-sdk/groq": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
+    "@effect/cli": "catalog:effect",
     "@effect/experimental": "catalog:effect",
     "@effect/language-service": "catalog:effect",
     "@effect/opentelemetry": "catalog:effect",
@@ -49,6 +51,7 @@
     "ts-patch": "catalog:types",
     "typescript": "catalog:types",
     "ultracite": "catalog:lint",
-    "vitest": "catalog:test"
+    "vitest": "catalog:test",
+    "yaml": "catalog:other"
   }
 }

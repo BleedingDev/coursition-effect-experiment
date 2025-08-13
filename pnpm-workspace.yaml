@@ -8,6 +8,7 @@ onlyBuiltDependencies:
 catalogs:
   # Effect-TS ecosystem packages - runtime dependencies
   effect:
+    "@effect/cli": ^0.69.0
     "@effect/experimental": ^0.54.5
     "@effect/language-service": ^0.35.2
     "@effect/opentelemetry": ^0.56.1
@@ -15,7 +16,7 @@ catalogs:
     "@effect/platform-bun": ^0.78.0
     "@typed/id": ^0.17.2
     "effect": ^3.17.7
-  
+
   # AI and ML packages
   ai:
     "@ai-sdk/assemblyai": 1.0.1
@@ -25,7 +26,7 @@ catalogs:
     "@ai-sdk/groq": 2.0.5
     "@ai-sdk/openai": 2.0.10
     "ai": 5.0.10
-  
+
   # Core packages
   core:
     "@restatedev/restate-sdk": ^1.8.1
@@ -47,3 +48,7 @@ catalogs:
     "typescript": ^5.9.2
     "ts-patch": ^3.3.0
     "@types/bun": ^1.2.20
+
+  # Less used dependencies
+  other:
+    "yaml": 2.8.1
