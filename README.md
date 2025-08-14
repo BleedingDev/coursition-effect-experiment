@@ -97,7 +97,6 @@ bun run lint
 
 Environment variables:
 - `PORT` - Server port (default: 3001)
-- `PARSING_ENGINE_URL` - External parsing service URL
 - `JOBS_TABLE` - Database table for job storage
 - `LOG_LEVEL` - Logging level (default: info)
 
