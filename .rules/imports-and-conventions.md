@@ -1,4 +1,4 @@
-# Imports and Naming Conventions
+# Import and File Conventions
 
 ## Import Patterns
 
@@ -19,25 +19,14 @@ import { Effect, Schema, Data } from 'effect'
 import { JobsStore } from 'src/stores/jobs/jobs.store'
 ```
 
-## Naming Conventions
+## File Naming
 
 ### Files and Directories
-- **kebab-case** for file names: `jobs.store.ts`, `get-job-by-id.handler.ts`
-- **Pattern suffixes**: `.store.ts`, `.usecase.ts`, `.handler.ts`, `.step.ts`, `.test.ts`
-- Test files co-located with implementation
+- Use kebab-case for file names: `jobs.store.ts`, `get-job-by-id.handler.ts`
+- Pattern suffixes: `.store.ts`, `.usecase.ts`, `.handler.ts`, `.step.ts`, `.test.ts`
+- Test files should be co-located with implementation
 
-### Classes and Functions
-- **PascalCase** for classes: `JobsStore`, `JobNotFoundError`
-- **camelCase** for functions: `getJobsUsecase`, `getAllJobs`
-- Service suffix for Effect services: `JobsStore`, `MediaStore`
-
-### Variables and Constants
-- **camelCase** for variables: `jobsStore`, `tableName`
-- **UPPERCASE** for constants (rarely used, prefer Effect Config)
-
-### Schema and Error Naming
-- **PascalCase** for schemas: `JobResponse`, `JobsResponse`
-- **PascalCase + Error suffix** for errors: `JobNotFoundError`, `WorkflowCreationError`
+> For code naming (types, functions — including usecase and handler prefixes — enums, generics), see `.rules/code-style.mdc`.
 
 ## File Organization Patterns
 

@@ -32,5 +32,4 @@
 
 ## File Organization
 - Follow existing directory structure patterns
-- Use kebab-case for file names: `jobs.store.ts`, `get-job-by-id.handler.ts`
-- Pattern suffixes: `.store.ts`, `.usecase.ts`, `.handler.ts`, `.step.ts`
+- See `.rules/imports-and-conventions.md` for file naming and suffix patterns
