@@ -212,6 +212,7 @@ const updateDocumentCatalog = (
 const pnpmInstallCatalogs = (
   packageNames: readonly string[],
   catalog: string,
+  dev = false,
 ) =>
   Effect.tryPromise({
     try: async () => {
@@ -219,10 +220,13 @@ const pnpmInstallCatalogs = (
         (packageName) => `${packageName}@catalog:${catalog}`,
       )
 
-      const proc = spawn(['pnpm', 'add', ...catalogRefs], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      })
+      const proc = spawn(
+        ['pnpm', 'add', ...(dev ? ['-D'] : []), ...catalogRefs],
+        {
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      )
       await proc.exited
       const exitCode = proc.exitCode ?? -1
       if (exitCode !== 0) {
@@ -249,6 +253,7 @@ const pnpmInstallCatalogs = (
 const installPackages = Effect.fn('installPackages')(function* (
   pkgNames: readonly string[],
   catalogName?: string,
+  dev = false,
 ) {
   if (pkgNames.length === 0) {
     return yield* Effect.fail(new NoPackagesError())
@@ -297,7 +302,7 @@ const installPackages = Effect.fn('installPackages')(function* (
   yield* Console.log('📝 Updated pnpm-workspace.yaml with catalog entries')
 
   yield* Console.log('📦 Installing packages via pnpm in one batch...')
-  yield* pnpmInstallCatalogs(pkgNames, catalog)
+  yield* pnpmInstallCatalogs(pkgNames, catalog, dev)
   yield* Console.log(
     `✅ Installed ${pkgNames.length} package(s) from catalog "${catalog}"`,
   )
@@ -340,11 +345,16 @@ const catalogOption = Options.text('catalog').pipe(
   Options.withDescription('Target catalog name'),
 )
 
+const devOption = Options.boolean('dev').pipe(
+  Options.withAlias('D'),
+  Options.withDescription('Install as devDependency (pnpm add -D)'),
+)
+
 const installCommand = Command.make(
   'install',
-  { packages, catalog: catalogOption },
-  ({ packages: pkgArgs, catalog }) =>
-    installPackages(pkgArgs, catalog).pipe(
+  { packages, catalog: catalogOption, dev: devOption },
+  ({ packages: pkgArgs, catalog, dev }) =>
+    installPackages(pkgArgs, catalog, dev).pipe(
       Effect.catchAll((error) =>
         Console.error(renderError(error)).pipe(
           Effect.zipRight(Effect.sync(() => process.exit(1))),
