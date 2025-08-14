@@ -38,4 +38,4 @@ const youSayGoodbyeISayHello = <
 };
 ```
 
-Outside of generic functions, use `any` extremely sparingly.
+Outside generic functions, use `any` sparingly.
