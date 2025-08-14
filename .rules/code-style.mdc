@@ -9,7 +9,7 @@ Guidelines for code style in the T6C project using Effect-TS architecture.
 
 ## Import Patterns
 
-See `.rules/imports-and-conventions.md` for import and naming conventions.
+See `.rules/imports-and-conventions.md` for import conventions.
 
 ## Comments and Documentation
 
@@ -158,19 +158,32 @@ Effect.withSpan('BlogStore.create', {
 })
 ```
 
-## Naming Conventions
+## Naming Conventions (Code)
 
-### Files and Directories
-- Use kebab-case for file names: `blog.store.ts`, `get-blog-by-id.ts`
-- Store files follow pattern: `store-name.store.ts` (e.g., `blog.store.ts`, `search.store.ts`)
-- Use PascalCase for service classes: `BlogStore`, `SearchStore`
-- Use camelCase for functions and variables: `getBlogById`, `blogPost`
-- Use UPPERCASE for constants: `TABLE_NAME`, `DEFAULT_LIMIT`
+### Classes, Types, and Interfaces
+- Use PascalCase for classes, types, and interfaces: `BlogStore`, `SearchStore`, `MyType`, `MyInterface`
+
+### Variables and Functions
+- Use camelCase for variables and functions: `blogPost`, `getBlogById`
+
+### Constants and Enums
+- Use ALL_CAPS for constants: `TABLE_NAME`, `DEFAULT_LIMIT`
+- For existing enums, use ALL_CAPS for enum values (e.g., `Color.RED`). Do not introduce new enums; see `.rules/enums.md` for alternatives.
 
 ### Functions and Methods
 - Use descriptive names that indicate purpose
 - Prefix usecases with action: `createBlogPostUsecase`, `getBlogByIdUsecase`
 - Prefix handlers with HTTP method context: `_handler`, `handler`
+
+### Generic Type Parameters
+- Prefix generic type parameters with `T` (e.g., `TItem`, `TKey`, `TValue`, `TResult`).
+- Avoid single-letter generics except a solitary `T` in simple cases; prefer descriptive names.
+
+Example:
+
+```ts
+type RecordOfArrays<TItem> = Record<string, TItem[]>;
+```
 
 ## Type Safety
 
