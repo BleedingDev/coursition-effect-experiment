@@ -177,6 +177,7 @@ Effect.withSpan('BlogStore.create', {
 
 ### Generic Type Parameters
 - Prefix generic type parameters with `T` (e.g., `TItem`, `TKey`, `TValue`, `TResult`).
+- Avoid single-letter generics except a solitary `T` in simple cases; prefer descriptive names.
 
 Example:
 
