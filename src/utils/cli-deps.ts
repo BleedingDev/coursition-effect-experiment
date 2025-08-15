@@ -39,7 +39,7 @@ class PnpmInstallError extends Data.TaggedError('PnpmInstallError')<{
   packageName: string
   catalog: string
   exitCode: number
-  stderr?: string
+  stderr: string | undefined
 }> {}
 
 class CatalogSelectionError extends Data.TaggedError('CatalogSelectionError')<{
