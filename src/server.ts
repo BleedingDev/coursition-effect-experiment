@@ -1,16 +1,16 @@
 import { DevTools } from '@effect/experimental'
 import * as Otlp from '@effect/opentelemetry/Otlp'
 import {
+  FetchHttpClient,
   HttpApiBuilder,
   HttpApiScalar,
   HttpMiddleware,
   HttpServer,
 } from '@effect/platform'
-import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as restate from '@restatedev/restate-sdk'
 import { GetRandomValues } from '@typed/id'
-import { Effect, Layer } from 'effect'
+import { Config, Effect, Layer, Logger } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
 import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
@@ -35,8 +35,12 @@ const mediaGroupImplementation = HttpApiBuilder.group(
       .handle('getJob', ({ path: { id } }) => getJobByIdHandler(id))
       .handle('getJobResult', ({ path: { id } }) => getJobResultHandler(id)),
 )
-// TODO: Make port consume env variables
-restate.endpoint().bind(transcribeWorkflowDefinition).listen(9997)
+
+const restatePort = Effect.runSync(Effect.gen(function* () {
+  const port = yield* envVars.RESTATE_PORT
+  return port
+}))
+restate.endpoint().bind(transcribeWorkflowDefinition).listen(restatePort)
 
 const ApiImplementation = HttpApiBuilder.api(api).pipe(
   Layer.provide(mediaGroupImplementation),
@@ -51,7 +55,7 @@ const ApiImplementation = HttpApiBuilder.api(api).pipe(
 )
 
 const ServerLayer = Effect.gen(function* () {
-  const port = yield* envVars.PORT
+  const port = yield* envVars.SERVER_PORT
 
   return Layer.mergeAll(
     DevTools.layer(),
@@ -65,11 +69,17 @@ const ServerLayer = Effect.gen(function* () {
   )
 }).pipe(Layer.unwrapEffect)
 
+const LogLevelLive = Config.logLevel('LOG_LEVEL').pipe(
+  Effect.andThen((level) => Logger.minimumLogLevel(level)),
+  Layer.unwrapEffect,
+)
+
 const HttpLive = HttpApiBuilder.serve(HttpMiddleware.logger).pipe(
   HttpServer.withLogAddress,
   Layer.provide(ServerLayer),
   Layer.provide(ApiImplementation),
   Layer.provide(GetRandomValues.CryptoRandom),
+  Layer.provide(LogLevelLive),
 )
 
 BunRuntime.runMain(Layer.launch(HttpLive))

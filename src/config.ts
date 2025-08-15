@@ -1,12 +1,12 @@
 import { Config, ConfigProvider, Layer } from 'effect'
 
 export const envVars = {
-  PORT: Config.integer('PORT').pipe(Config.withDefault(3001)),
+  SERVER_PORT: Config.integer('SERVER_PORT'),
   JOBS_TABLE: Config.string('JOBS_TABLE').pipe(
     Config.withDefault('jobs-table'),
   ),
   LOG_LEVEL: Config.string('LOG_LEVEL').pipe(Config.withDefault('info')),
-  RESTATE_PORT: Config.integer('RESTATE_PORT').pipe(Config.withDefault(9997)),
+  RESTATE_PORT: Config.integer('RESTATE_PORT'),
 } as const
 
 const mockConfigProvider = ConfigProvider.fromJson({
