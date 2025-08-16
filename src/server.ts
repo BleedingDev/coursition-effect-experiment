@@ -37,7 +37,7 @@ const mediaGroupImplementation = HttpApiBuilder.group(
 )
 
 const restatePort = Effect.runSync(Effect.gen(function* () {
-  const port = yield* envVars.RESTATE_PORT
+  const port = (yield* envVars).RESTATE_PORT
   return port
 }))
 restate.endpoint().bind(transcribeWorkflowDefinition).listen(restatePort)
@@ -55,7 +55,7 @@ const ApiImplementation = HttpApiBuilder.api(api).pipe(
 )
 
 const ServerLayer = Effect.gen(function* () {
-  const port = yield* envVars.SERVER_PORT
+  const port = (yield* envVars).SERVER_PORT
 
   return Layer.mergeAll(
     DevTools.layer(),
@@ -69,7 +69,8 @@ const ServerLayer = Effect.gen(function* () {
   )
 }).pipe(Layer.unwrapEffect)
 
-const LogLevelLive = Config.logLevel('LOG_LEVEL').pipe(
+const LogLevelLive = envVars.pipe(
+  Effect.map((env) => env.LOG_LEVEL),
   Effect.andThen((level) => Logger.minimumLogLevel(level)),
   Layer.unwrapEffect,
 )
