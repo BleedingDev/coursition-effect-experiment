@@ -37,8 +37,7 @@ const mediaGroupImplementation = HttpApiBuilder.group(
 )
 
 const restatePort = Effect.runSync(Effect.gen(function* () {
-  const port = (yield* envVars).RESTATE_PORT
-  return port
+  return (yield* envVars).RESTATE_PORT
 }))
 restate.endpoint().bind(transcribeWorkflowDefinition).listen(restatePort)
 
