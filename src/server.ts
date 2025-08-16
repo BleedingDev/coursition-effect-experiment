@@ -69,8 +69,7 @@ const ServerLayer = Effect.gen(function* () {
 }).pipe(Layer.unwrapEffect)
 
 const LogLevelLive = envVars.pipe(
-  Effect.map((env) => env.LOG_LEVEL),
-  Effect.andThen((level) => Logger.minimumLogLevel(level)),
+  Effect.map((env) => Logger.minimumLogLevel(env.LOG_LEVEL)),
   Layer.unwrapEffect,
 )
 
