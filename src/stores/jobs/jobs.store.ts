@@ -12,7 +12,7 @@ import {
 
 export class JobsStore extends Effect.Service<JobsStore>()('JobsStore', {
   effect: Effect.gen(function* () {
-    const tableName = yield* envVars.JOBS_TABLE
+    const tableName = (yield* envVars).JOBS_TABLE
 
     return {
       getAllJobs: () =>
