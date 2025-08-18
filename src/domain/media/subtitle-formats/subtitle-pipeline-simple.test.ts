@@ -26,6 +26,10 @@ import {
   processWithConfig,
 } from './subtitle-pipeline-simple'
 
+// Regex patterns defined at top level for performance
+const SRT_TIMING_PATTERN =
+  /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/
+
 // ============================================================================
 // Test Data
 // ============================================================================
@@ -124,9 +128,9 @@ describe('SubtitlePipeline Simple', () => {
       const strings = result as string[]
       expect(strings.length).toBeGreaterThan(0)
       expect(strings[0]).toBe('1')
-      expect(strings[1]).toMatch(
-        /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/,
-      )
+      expect(strings[1]).toMatch(SRT_TIMING_PATTERN)
+      expect(strings[2]).toBe('Hello world')
+      expect(strings[3]).toBe('')
     })
 
     it('should format to VTT correctly', () => {
@@ -165,7 +169,7 @@ describe('SubtitlePipeline Simple', () => {
       expect(result).toBeInstanceOf(Array)
       const strings = result as string[]
       expect(strings.length).toBe(1)
-      const jsonContent = JSON.parse(strings[0]!)
+      const jsonContent = JSON.parse(strings[0] || '[]')
       expect(jsonContent).toBeInstanceOf(Array)
       expect(jsonContent.length).toBe(3)
     })

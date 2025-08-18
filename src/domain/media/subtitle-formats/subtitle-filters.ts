@@ -6,6 +6,9 @@ import type { SubtitleItem } from './subtitle-formats.schema'
  * These functions work on individual SubtitleItem objects and can be composed using EffectTS.Pipe
  */
 
+// Regex patterns defined at top level for performance
+const SPEAKER_PREFIX_PATTERN = /^\[Speaker \d+\]:\s*/
+
 /**
  * Replaces subtitle text with a specified replacement text
  * Preserves speaker information if already present in the text
@@ -17,7 +20,7 @@ export const replaceText =
   (replacementText: string) =>
   (subtitle: SubtitleItem): SubtitleItem => {
     // Check if the current text has a speaker prefix (e.g., "[Speaker 1]: ")
-    const speakerMatch = subtitle.text.match(/^\[Speaker \d+\]:\s*/)
+    const speakerMatch = subtitle.text.match(SPEAKER_PREFIX_PATTERN)
 
     if (speakerMatch) {
       // Preserve the speaker prefix and replace only the content
@@ -182,15 +185,12 @@ export const removeEmptySubtitles = (
   subtitle.text.trim().length > 0 ? Option.some(subtitle) : Option.none()
 
 /**
- * Debug function that logs subtitle information
- *
- * @param label - Optional label for the debug output
- * @returns Function that takes a subtitle item, logs it, and returns it unchanged
+ * Debug filter that logs subtitle information
  */
 export const debugSubtitle =
-  (label?: string) =>
+  () =>
   (subtitle: SubtitleItem): SubtitleItem => {
-    console.log(`${label ? `[${label}] ` : ''}`, subtitle)
+    // Return subtitle unchanged for production (debug logging removed)
     return subtitle
   }
 

@@ -22,6 +22,87 @@ import type {
  * @param allowEmptyText - Whether to allow empty text content (for processing with cleanText option)
  * @returns Effect that succeeds with validated subtitles or fails with validation error
  */
+// Helper functions to reduce cognitive complexity
+const validateSubtitleFields = (
+  subtitle: { start?: unknown; end?: unknown; text?: unknown },
+  index: number,
+) => {
+  if (
+    typeof subtitle.start !== 'number' ||
+    typeof subtitle.end !== 'number' ||
+    typeof subtitle.text !== 'string'
+  ) {
+    return E.fail(
+      new InvalidSubtitleDataError({
+        cause: new Error(
+          `Subtitle at index ${index} must have start (number), end (number), and text (string) fields`,
+        ),
+      }),
+    )
+  }
+  return E.succeed(undefined)
+}
+
+const validateSubtitleTiming = (
+  subtitle: { start: number; end: number },
+  index: number,
+) => {
+  if (subtitle.start < 0 || subtitle.end < 0) {
+    return E.fail(
+      new InvalidTimingError({
+        cause: new Error(
+          `Subtitle at index ${index} has negative timing values`,
+        ),
+      }),
+    )
+  }
+
+  if (subtitle.start >= subtitle.end) {
+    return E.fail(
+      new InvalidTimingError({
+        cause: new Error(
+          `Subtitle at index ${index} has start time >= end time`,
+        ),
+      }),
+    )
+  }
+  return E.succeed(undefined)
+}
+
+const validateSubtitleText = (
+  subtitle: { text: string },
+  index: number,
+  allowEmptyText: boolean,
+) => {
+  if (!allowEmptyText && subtitle.text.trim().length === 0) {
+    return E.fail(
+      new InvalidSubtitleDataError({
+        cause: new Error(`Subtitle at index ${index} has empty text content`),
+      }),
+    )
+  }
+  return E.succeed(undefined)
+}
+
+const validateSubtitleSpeaker = (
+  subtitle: { speaker?: number },
+  index: number,
+) => {
+  if (
+    subtitle.speaker !== undefined &&
+    (subtitle.speaker < 0 || !Number.isInteger(subtitle.speaker))
+  ) {
+    return E.fail(
+      new InvalidSubtitleDataError({
+        cause: new Error(
+          `Subtitle at index ${index} has invalid speaker value (must be non-negative integer)`,
+        ),
+      }),
+    )
+  }
+  return E.succeed(undefined)
+}
+
 export const validateSubtitleData = (
   subtitles: SubtitleJson,
   allowEmptyText = false,
@@ -50,64 +131,11 @@ export const validateSubtitleData = (
     for (let i = 0; i < actualSubtitles.length; i++) {
       const subtitle = actualSubtitles[i]
 
-      // Validate required fields exist
-      if (
-        typeof subtitle.start !== 'number' ||
-        typeof subtitle.end !== 'number' ||
-        typeof subtitle.text !== 'string'
-      ) {
-        return yield* E.fail(
-          new InvalidSubtitleDataError({
-            cause: new Error(
-              `Subtitle at index ${i} must have start (number), end (number), and text (string) fields`,
-            ),
-          }),
-        )
-      }
-
-      // Validate timing logic
-      if (subtitle.start < 0 || subtitle.end < 0) {
-        return yield* E.fail(
-          new InvalidTimingError({
-            cause: new Error(
-              `Subtitle at index ${i} has negative timing values`,
-            ),
-          }),
-        )
-      }
-
-      if (subtitle.start >= subtitle.end) {
-        return yield* E.fail(
-          new InvalidTimingError({
-            cause: new Error(
-              `Subtitle at index ${i} has start time >= end time`,
-            ),
-          }),
-        )
-      }
-
-      // Validate text is not empty (unless allowEmptyText is true)
-      if (!allowEmptyText && subtitle.text.trim().length === 0) {
-        return yield* E.fail(
-          new InvalidSubtitleDataError({
-            cause: new Error(`Subtitle at index ${i} has empty text content`),
-          }),
-        )
-      }
-
-      // Validate speaker field if present
-      if (
-        subtitle.speaker !== undefined &&
-        (subtitle.speaker < 0 || !Number.isInteger(subtitle.speaker))
-      ) {
-        return yield* E.fail(
-          new InvalidSubtitleDataError({
-            cause: new Error(
-              `Subtitle at index ${i} has invalid speaker value (must be non-negative integer)`,
-            ),
-          }),
-        )
-      }
+      // Validate using helper functions
+      yield* validateSubtitleFields(subtitle, i)
+      yield* validateSubtitleTiming(subtitle, i)
+      yield* validateSubtitleText(subtitle, i, allowEmptyText)
+      yield* validateSubtitleSpeaker(subtitle, i)
     }
 
     return actualSubtitles
@@ -179,60 +207,57 @@ export const addSpeakerInfo =
 export const mergeAdjacentSubtitles = (
   subtitles: SubtitleItem[],
   threshold: number,
-) =>
-  E.gen(function* () {
-    if (subtitles.length <= 1) {
-      return subtitles
+) => {
+  if (subtitles.length <= 1) {
+    return E.succeed(subtitles)
+  }
+
+  const merged: SubtitleItem[] = []
+  const first = subtitles[0]
+  if (!first) {
+    return E.succeed(subtitles)
+  }
+  let current: SubtitleItem = {
+    start: first.start,
+    end: first.end,
+    text: first.text,
+    speaker: first.speaker,
+  }
+
+  // Process subtitles one by one
+  for (let i = 1; i < subtitles.length; i++) {
+    const next = subtitles[i]
+    if (!next) {
+      continue
     }
 
-    const merged: SubtitleItem[] = []
-    const first = subtitles[0]
-    if (!first) {
-      return subtitles
-    }
-    let current: SubtitleItem = {
-      start: first.start,
-      end: first.end,
-      text: first.text,
-      speaker: first.speaker,
-    }
+    const gap = next.start - current.end
 
-    // Use generator to process subtitles one by one
-    for (let i = 1; i < subtitles.length; i++) {
-      const next = subtitles[i]
-      if (!next) {
-        continue
+    if (gap <= threshold) {
+      // Merge subtitles
+      const mergedSubtitle: SubtitleItem = {
+        start: current.start,
+        end: next.end,
+        text: `${current.text} ${next.text}`,
+        speaker: current.speaker === next.speaker ? current.speaker : undefined,
       }
-
-      const gap = next.start - current.end
-
-      if (gap <= threshold) {
-        // Merge subtitles
-        const mergedSubtitle: SubtitleItem = {
-          start: current.start,
-          end: next.end,
-          text: `${current.text} ${next.text}`,
-          speaker:
-            current.speaker === next.speaker ? current.speaker : undefined,
-        }
-        current = mergedSubtitle
-      } else {
-        // Add current to merged array and start new current
-        merged.push(current)
-        current = {
-          start: next.start,
-          end: next.end,
-          text: next.text,
-          speaker: next.speaker,
-        }
+      current = mergedSubtitle
+    } else {
+      // Add current to merged array and start new current
+      merged.push(current)
+      current = {
+        start: next.start,
+        end: next.end,
+        text: next.text,
+        speaker: next.speaker,
       }
     }
+  }
 
-    // Add the last subtitle
-    merged.push(current)
+  // Add the last subtitle
+  merged.push(current)
 
-    return merged
-  }).pipe(
+  return E.succeed(merged).pipe(
     E.tapError(E.logError),
     E.withSpan('mergeAdjacentSubtitles', {
       attributes: {
@@ -241,6 +266,7 @@ export const mergeAdjacentSubtitles = (
       },
     }),
   )
+}
 
 /**
  * Processes subtitles with various options using generator for streaming processing
@@ -249,6 +275,32 @@ export const mergeAdjacentSubtitles = (
  * @param options - Processing options (timing offset, speaker info, merging, etc.)
  * @returns Effect that succeeds with processed subtitles or fails with processing error
  */
+// Helper function to process a single subtitle item
+const processSingleSubtitle = (
+  item: SubtitleItem,
+  options?: ConversionOptions,
+): SubtitleItem => {
+  let processedItem = item
+
+  // 1. Apply timing offset first
+  if (options?.timingOffset) {
+    processedItem = applyTimingOffset(options.timingOffset)(processedItem)
+  }
+
+  // 2. Clean text second
+  if (options?.cleanText !== false) {
+    // Default to true
+    processedItem = cleanSubtitleText(processedItem)
+  }
+
+  // 3. Add speaker info last
+  if (options?.includeSpeaker) {
+    processedItem = addSpeakerInfo(true)(processedItem)
+  }
+
+  return processedItem
+}
+
 export const processSubtitles = (
   subtitles: SubtitleJson,
   options?: ConversionOptions,
@@ -262,27 +314,9 @@ export const processSubtitles = (
     )
 
     // Process each subtitle in correct order: timing → clean → speaker
-    let processed = validatedSubtitles.map((item) => {
-      let processedItem = item
-
-      // 1. Apply timing offset first
-      if (options?.timingOffset) {
-        processedItem = applyTimingOffset(options.timingOffset)(processedItem)
-      }
-
-      // 2. Clean text second
-      if (options?.cleanText !== false) {
-        // Default to true
-        processedItem = cleanSubtitleText(processedItem)
-      }
-
-      // 3. Add speaker info last
-      if (options?.includeSpeaker) {
-        processedItem = addSpeakerInfo(true)(processedItem)
-      }
-
-      return processedItem
-    })
+    let processed = validatedSubtitles.map((item) =>
+      processSingleSubtitle(item, options),
+    )
 
     // Filter out empty text if cleanText is enabled
     if (options?.cleanText === true) {
@@ -505,31 +539,29 @@ export const convertToJson = (subtitles: SubtitleItem[]) =>
  * @param subtitles - Array of subtitle items to convert
  * @returns Effect that succeeds with SRT format string
  */
-export const convertToSrt = (subtitles: SubtitleItem[]) =>
-  E.gen(function* () {
-    // Use generator to build SRT content
-    const srtLines: string[] = []
+export const convertToSrt = (subtitles: SubtitleItem[]) => {
+  // Build SRT content
+  const srtLines: string[] = []
 
-    for (let i = 0; i < subtitles.length; i++) {
-      const subtitle = subtitles[i]
-      if (!subtitle) {
-        continue
-      }
-
-      const startTime = formatTimeSrt(subtitle.start)
-      const endTime = formatTimeSrt(subtitle.end)
-
-      srtLines.push(`${i + 1}`)
-      srtLines.push(`${startTime} --> ${endTime}`)
-      srtLines.push(subtitle.text)
-      srtLines.push('')
+  for (const [index, subtitle] of subtitles.entries()) {
+    if (!subtitle) {
+      continue
     }
 
-    return srtLines.join('\n')
-  }).pipe(
+    const startTime = formatTimeSrt(subtitle.start)
+    const endTime = formatTimeSrt(subtitle.end)
+
+    srtLines.push(`${index + 1}`)
+    srtLines.push(`${startTime} --> ${endTime}`)
+    srtLines.push(subtitle.text)
+    srtLines.push('')
+  }
+
+  return E.succeed(srtLines.join('\n')).pipe(
     E.tapError(E.logError),
     E.withSpan('convertToSrt', { attributes: { count: subtitles.length } }),
   )
+}
 
 /**
  * Converts subtitle items to VTT format with proper headers and structure
@@ -537,30 +569,28 @@ export const convertToSrt = (subtitles: SubtitleItem[]) =>
  * @param subtitles - Array of subtitle items to convert
  * @returns Effect that succeeds with VTT format string
  */
-export const convertToVtt = (subtitles: SubtitleItem[]) =>
-  E.gen(function* () {
-    // Use generator to build VTT content
-    const vttLines: string[] = ['WEBVTT', '']
+export const convertToVtt = (subtitles: SubtitleItem[]) => {
+  // Build VTT content
+  const vttLines: string[] = ['WEBVTT', '']
 
-    for (let i = 0; i < subtitles.length; i++) {
-      const subtitle = subtitles[i]
-      if (!subtitle) {
-        continue
-      }
-
-      const startTime = formatTimeVtt(subtitle.start)
-      const endTime = formatTimeVtt(subtitle.end)
-
-      vttLines.push(`${startTime} --> ${endTime}`)
-      vttLines.push(subtitle.text)
-      vttLines.push('')
+  for (const subtitle of subtitles) {
+    if (!subtitle) {
+      continue
     }
 
-    return vttLines.join('\n')
-  }).pipe(
+    const startTime = formatTimeVtt(subtitle.start)
+    const endTime = formatTimeVtt(subtitle.end)
+
+    vttLines.push(`${startTime} --> ${endTime}`)
+    vttLines.push(subtitle.text)
+    vttLines.push('')
+  }
+
+  return E.succeed(vttLines.join('\n')).pipe(
     E.tapError(E.logError),
     E.withSpan('convertToVtt', { attributes: { count: subtitles.length } }),
   )
+}
 
 /**
  * Converts subtitle items to plain text format using generator for streaming processing
@@ -568,32 +598,30 @@ export const convertToVtt = (subtitles: SubtitleItem[]) =>
  * @param subtitles - Array of subtitle items to convert
  * @returns Effect that succeeds with plain text string
  */
-export const convertToPlainText = (subtitles: SubtitleItem[]) =>
-  E.gen(function* () {
-    // Use generator to build plain text content
-    const textLines: string[] = []
+export const convertToPlainText = (subtitles: SubtitleItem[]) => {
+  // Build plain text content
+  const textLines: string[] = []
 
-    for (let i = 0; i < subtitles.length; i++) {
-      const subtitle = subtitles[i]
-      if (!subtitle) {
-        continue
-      }
-
-      textLines.push(subtitle.text)
-
-      // Add paragraph break between subtitles
-      if (i < subtitles.length - 1) {
-        textLines.push('')
-      }
+  for (const [index, subtitle] of subtitles.entries()) {
+    if (!subtitle) {
+      continue
     }
 
-    return textLines.join('\n')
-  }).pipe(
+    textLines.push(subtitle.text)
+
+    // Add paragraph break between subtitles
+    if (index < subtitles.length - 1) {
+      textLines.push('')
+    }
+  }
+
+  return E.succeed(textLines.join('\n')).pipe(
     E.tapError(E.logError),
     E.withSpan('convertToPlainText', {
       attributes: { count: subtitles.length },
     }),
   )
+}
 
 /**
  * SubtitleConverterLive is a pure subtitle format converter service.
@@ -709,4 +737,4 @@ export const SubtitleConverterLive = {
 }
 
 // Type exports for backward compatibility
-export type { SubtitleItem, SubtitleJson }
+export type { SubtitleItem, SubtitleJson } from './subtitle-formats.schema'
