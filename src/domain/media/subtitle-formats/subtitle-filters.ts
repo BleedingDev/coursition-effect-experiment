@@ -229,37 +229,10 @@ export const applyFiltersToArray = (
   >
 ): SubtitleItem[] => {
   return subtitles
-    .filter((subtitle) => {
-      let current = subtitle
-      for (const filter of filters) {
-        const result = filter(current)
-        if (Option.isOption(result)) {
-          if (Option.isSome(result)) {
-            current = result.value
-          } else {
-            return false // Filtered out
-          }
-        } else {
-          current = result
-        }
-      }
-      return true
-    })
+    .filter((subtitle) => Option.isSome(applyFiltersToItem(subtitle, filters)))
     .map((subtitle) => {
-      let current = subtitle
-      for (const filter of filters) {
-        const result = filter(current)
-        if (Option.isOption(result)) {
-          if (Option.isSome(result)) {
-            current = result.value
-          } else {
-            return subtitle // Should not happen due to filter above
-          }
-        } else {
-          current = result
-        }
-      }
-      return current
+      const result = applyFiltersToItem(subtitle, filters)
+      return Option.isSome(result) ? result.value : subtitle
     })
 }
 
@@ -278,25 +251,9 @@ export const streamSubtitles = (
 ) =>
   function* (): Generator<SubtitleItem, void, unknown> {
     for (const subtitle of subtitles) {
-      let current = subtitle
-      let shouldYield = true
-
-      for (const filter of filters) {
-        const result = filter(current)
-        if (Option.isOption(result)) {
-          if (Option.isSome(result)) {
-            current = result.value
-          } else {
-            shouldYield = false
-            break
-          }
-        } else {
-          current = result
-        }
-      }
-
-      if (shouldYield) {
-        yield current
+      const result = applyFiltersToItem(subtitle, filters)
+      if (Option.isSome(result)) {
+        yield result.value
       }
     }
   }
@@ -354,20 +311,10 @@ export const applyFilters =
   (stream: Stream.Stream<SubtitleItem, never, never>) =>
     stream.pipe(
       Stream.mapEffect((subtitle) => {
-        let current = subtitle
-        for (const filter of filters) {
-          const result = filter(current)
-          if (Option.isOption(result)) {
-            if (Option.isSome(result)) {
-              current = result.value
-            } else {
-              return E.fail('filtered')
-            }
-          } else {
-            current = result
-          }
-        }
-        return E.succeed(current)
+        const result = applyFiltersToItem(subtitle, filters)
+        return Option.isSome(result)
+          ? E.succeed(result.value)
+          : E.fail('filtered')
       }),
       Stream.catchAll(() => Stream.empty),
     )
@@ -430,6 +377,39 @@ export const processSubtitlesParallel = (
 ) => collectStream(processSubtitlesPipeline(subtitles, ...filters))
 
 /**
+ * Applies a single filter to a subtitle item
+ */
+const applySingleFilter = (
+  subtitle: SubtitleItem,
+  filter: (
+    subtitle: SubtitleItem,
+  ) => SubtitleItem | Option.Option<SubtitleItem>,
+): Option.Option<SubtitleItem> => {
+  const result = filter(subtitle)
+  return Option.isOption(result) ? result : Option.some(result)
+}
+
+/**
+ * Applies filters to a single subtitle item
+ */
+const applyFiltersToItem = (
+  subtitle: SubtitleItem,
+  filters: Array<
+    (subtitle: SubtitleItem) => SubtitleItem | Option.Option<SubtitleItem>
+  >,
+): Option.Option<SubtitleItem> => {
+  let current = subtitle
+  for (const filter of filters) {
+    const result = applySingleFilter(current, filter)
+    if (Option.isNone(result)) {
+      return Option.none()
+    }
+    current = result.value
+  }
+  return Option.some(current)
+}
+
+/**
  * Generator-based streaming filter that yields processed subtitles one by one
  *
  * @param subtitles - Array of subtitle items to process
@@ -443,25 +423,9 @@ export function* streamSubtitlesGenerator(
   >
 ): Generator<SubtitleItem, void, unknown> {
   for (const subtitle of subtitles) {
-    let current = subtitle
-    let shouldYield = true
-
-    for (const filter of filters) {
-      const result = filter(current)
-      if (Option.isOption(result)) {
-        if (Option.isSome(result)) {
-          current = result.value
-        } else {
-          shouldYield = false
-          break
-        }
-      } else {
-        current = result
-      }
-    }
-
-    if (shouldYield) {
-      yield current
+    const result = applyFiltersToItem(subtitle, filters)
+    if (Option.isSome(result)) {
+      yield result.value
     }
   }
 }
@@ -548,8 +512,7 @@ export const saveToFile =
  */
 const convertToSrtFormat = (subtitles: SubtitleItem[]): string => {
   const lines: string[] = []
-  for (let i = 0; i < subtitles.length; i++) {
-    const subtitle = subtitles[i]
+  for (const [index, subtitle] of subtitles.entries()) {
     if (!subtitle) {
       continue
     }
@@ -557,7 +520,7 @@ const convertToSrtFormat = (subtitles: SubtitleItem[]): string => {
     const startTime = formatTimeSrt(subtitle.start)
     const endTime = formatTimeSrt(subtitle.end)
 
-    lines.push(`${i + 1}`)
+    lines.push(`${index + 1}`)
     lines.push(`${startTime} --> ${endTime}`)
     lines.push(subtitle.text)
     lines.push('')
@@ -570,8 +533,7 @@ const convertToSrtFormat = (subtitles: SubtitleItem[]): string => {
  */
 const convertToVttFormat = (subtitles: SubtitleItem[]): string => {
   const lines: string[] = ['WEBVTT', '']
-  for (let i = 0; i < subtitles.length; i++) {
-    const subtitle = subtitles[i]
+  for (const subtitle of subtitles) {
     if (!subtitle) {
       continue
     }
@@ -591,15 +553,14 @@ const convertToVttFormat = (subtitles: SubtitleItem[]): string => {
  */
 const convertToPlainTextFormat = (subtitles: SubtitleItem[]): string => {
   const lines: string[] = []
-  for (let i = 0; i < subtitles.length; i++) {
-    const subtitle = subtitles[i]
+  for (const [index, subtitle] of subtitles.entries()) {
     if (!subtitle) {
       continue
     }
 
     lines.push(subtitle.text)
 
-    if (i < subtitles.length - 1) {
+    if (index < subtitles.length - 1) {
       lines.push('')
     }
   }

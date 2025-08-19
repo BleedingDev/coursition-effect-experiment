@@ -202,51 +202,90 @@ export class SubtitlePipeline {
     let currentItems: SubtitleItem[] = []
     let currentStrings: string[] = []
 
-    for (const stage of this.stages) {
+    type StreamStage = {
+      type: 'stream'
+      generator: () => Generator<SubtitleItem, void, unknown>
+    }
+    type FilterStage = { type: 'filter'; filter: SubtitleFilter }
+    type ParallelFilterStage = {
+      type: 'parallel-filter'
+      filter: ParallelSubtitleFilter
+    }
+    type CollectorStage = { type: 'collector'; collector: SubtitleCollector }
+    type FormatterStage = { type: 'formatter'; formatter: SubtitleFormatter }
+    type Stage =
+      | StreamStage
+      | FilterStage
+      | ParallelFilterStage
+      | CollectorStage
+      | FormatterStage
+
+    const handleStream = (stage: StreamStage): SubtitleItem[] => {
+      const generator = stage.generator()
+      const items: SubtitleItem[] = []
+      for (const item of generator) {
+        items.push(item)
+      }
+      return items
+    }
+
+    const handleFilter = (
+      stage: FilterStage,
+      items: SubtitleItem[],
+    ): SubtitleItem[] => {
+      if (this.config.parallelProcessing) {
+        return processParallel(stage.filter)(items)
+      }
+      const filtered: SubtitleItem[] = []
+      for (const item of items) {
+        const result = applySingleFilter(stage.filter)(item)
+        if (Option.isSome(result)) {
+          filtered.push(result.value)
+        }
+      }
+      return filtered
+    }
+
+    const handleParallelFilter = (
+      stage: ParallelFilterStage,
+      items: SubtitleItem[],
+    ): SubtitleItem[] => {
+      return stage.filter(items)
+    }
+
+    const handleCollector = (
+      stage: CollectorStage,
+      items: SubtitleItem[],
+    ): SubtitleItem[] => {
+      return stage.collector(items)
+    }
+
+    const handleFormatter = (
+      stage: FormatterStage,
+      items: SubtitleItem[],
+    ): string[] => {
+      return stage.formatter(items)
+    }
+
+    for (const stage of this.stages as Stage[]) {
       switch (stage.type) {
-        case 'stream': {
-          const generator = stage.generator()
-          const items: SubtitleItem[] = []
-          for (const item of generator) {
-            items.push(item)
-          }
-          currentItems = items
+        case 'stream':
+          currentItems = handleStream(stage)
           break
-        }
-
-        case 'filter': {
-          if (this.config.parallelProcessing) {
-            currentItems = processParallel(stage.filter)(currentItems)
-          } else {
-            const filtered: SubtitleItem[] = []
-            for (const item of currentItems) {
-              const result = applySingleFilter(stage.filter)(item)
-              if (Option.isSome(result)) {
-                filtered.push(result.value)
-              }
-            }
-            currentItems = filtered
-          }
+        case 'filter':
+          currentItems = handleFilter(stage, currentItems)
           break
-        }
-
-        case 'parallel-filter': {
-          currentItems = stage.filter(currentItems)
+        case 'parallel-filter':
+          currentItems = handleParallelFilter(stage, currentItems)
           break
-        }
-
-        case 'collector': {
-          currentItems = stage.collector(currentItems)
+        case 'collector':
+          currentItems = handleCollector(stage, currentItems)
           break
-        }
-
-        case 'formatter': {
-          currentStrings = stage.formatter(currentItems)
+        case 'formatter':
+          currentStrings = handleFormatter(stage, currentItems)
           break
-        }
         default: {
           // This should never happen due to TypeScript's exhaustive checking
-          const _exhaustiveCheck: never = stage
           break
         }
       }
