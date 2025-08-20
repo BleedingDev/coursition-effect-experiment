@@ -60,6 +60,38 @@ export const MultipleFormatResult = Schema.Struct({
   results: Schema.Array(SubtitleConversionResultSchema),
 })
 
+/**
+ * Enhanced request schema for subtitle processing with multiple format support
+ */
+export const EnhancedProcessSubtitlesRequest = Schema.Struct({
+  /** Title/name for the subtitle content */
+  title: Schema.String,
+  /** Desired output format(s) - single format or comma-separated list */
+  outputFormat: Schema.String,
+  /** Subtitle data to process */
+  subtitleData: Schema.Array(SubtitleItem),
+  /** Optional processing options */
+  options: Schema.optional(ConversionOptions),
+})
+
+/**
+ * Response schema for multiple format processing
+ */
+export const MultiFormatResponse = Schema.Struct({
+  /** Title of the processed subtitles */
+  title: Schema.String,
+  /** Results for each requested format */
+  results: Schema.Array(Schema.Struct({
+    format: SubtitleFormat,
+    content: Schema.String,
+    itemCount: Schema.Number,
+  })),
+  /** Total number of subtitle items processed */
+  totalItemCount: Schema.Number,
+  /** Processing timestamp */
+  processedAt: Schema.String,
+})
+
 // Type exports for use in other modules
 export type SubtitleItem = Schema.Schema.Type<typeof SubtitleItem>
 export type SubtitleJson = Schema.Schema.Type<typeof SubtitleJson>
@@ -68,3 +100,5 @@ export type ConversionOptions = Schema.Schema.Type<typeof ConversionOptions>
 export type MultipleFormatResult = Schema.Schema.Type<
   typeof MultipleFormatResult
 >
+export type EnhancedProcessSubtitlesRequest = Schema.Schema.Type<typeof EnhancedProcessSubtitlesRequest>
+export type MultiFormatResponse = Schema.Schema.Type<typeof MultiFormatResponse>

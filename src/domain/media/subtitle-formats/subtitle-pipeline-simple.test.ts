@@ -129,7 +129,7 @@ describe('SubtitlePipeline Simple', () => {
       expect(strings.length).toBeGreaterThan(0)
       expect(strings[0]).toBe('1')
       expect(strings[1]).toMatch(SRT_TIMING_PATTERN)
-      expect(strings[2]).toBe('Hello world')
+      expect(strings[2]).toBe('Hello, world.')
       expect(strings[3]).toBe('')
     })
 

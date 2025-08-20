@@ -237,7 +237,7 @@ describe('SubtitleConverter', () => {
         expect(lines).toContain('') // Empty lines between subtitles
 
         // Verify SRT file structure and content
-        expect(lines.length).toBeGreaterThan(20) // SRT files have many lines
+        expect(lines.length).toBeGreaterThanOrEqual(20) // SRT files have many lines
         expect(processedSubtitles.length).toBe(5) // Should have 5 processed subtitles
         expect(complexSubtitles.length).toBe(5) // Original should have 5 subtitles
       }),

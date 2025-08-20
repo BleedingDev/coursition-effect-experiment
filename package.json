@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:subtitles": "vitest run src/domain/media/subtitle-formats/",
+    "test:subtitles:watch": "vitest src/domain/media/subtitle-formats/",
     "check": "biome check --write .",
     "typecheck": "tspc --noEmit",
     "build": "tspc"
