@@ -682,8 +682,12 @@ export const SubtitleConverterLive = {
     options?: ConversionOptions,
   ) =>
     E.gen(function* () {
-      // For now, skip schema validation to avoid complex Either handling
-      // In production, you might want to add proper schema validation here
+      // Validate subtitles against the schema
+      const validationResult = Schema.validate(SubtitleJsonSchema, subtitles)
+      if (validationResult._tag === 'Left') {
+        throw new InvalidSubtitleDataError('Invalid subtitle data: ' + validationResult.left)
+      }
+      // Proceed with conversion if validation succeeds
       return yield* convertSubtitleFormat(subtitles, format, options)
     }).pipe(
       E.tapError(E.logError),
